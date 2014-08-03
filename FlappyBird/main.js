@@ -55,7 +55,7 @@ var main_state = {
 			}
 		} else {
 			if (this.bird.angle < 90) {
-				this.bird.angle += 1;
+				this.bird.angle += 2;
 			}
 		}
 
