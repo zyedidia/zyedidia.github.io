@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Trivia</title>
+
+		<body link="#0000FF" vlink="#0000FF" alink="#FF0000"> 
+		</head>
+
+		<body>
+
+			<p id=question></p>
+			<ul>
+				<li><a href="correct.html"id=corrAns></a></li>
+				<li><a href="incorrect.html"id=ans2></a></li>
+				<li><a href="incorrect.html"id=ans3></a></li>
+				<li><a href="incorrect.html"id=ans4></a></li>
+			</ul>
+			<script>
+				var question = {question:"Which of the following is a recursive acronym?", corrAns:"WINE", ans2: "IRC", ans3: "RAM", ans4: "VHDL", link: "http://en.wikipedia.org/wiki/Wine_%28software%29"};
+				var question1 = {question:"In which country did speed skating originate?", corrAns:"Netherlands", ans2: "Russia", ans3: "Canada", ans4: "Norway", link: "http://en.wikipedia.org/wiki/Speed_skating"};
+				var question2 = {question:"Julius Caesar said \"The die is cast\" after crossing which river?", corrAns:"Rubicon", ans2: "Tiber", ans3: "Thames", ans4: "Danube", link: "http://en.wikipedia.org/wiki/Alea_iacta_est"};
+				var question3 = {question:"Which NHL hockey team has won the most Stanley Cups?", corrAns:"Montreal Canadiens", ans2: "Boston Bruins", ans3: "New York Rangers", ans4: "Pittsburgh Penguin", link: "http://en.wikipedia.org/wiki/Montreal_Canadiens"};
+				var question4 = {question:"What is the name of the disease that has been referred to as the \"disease of kings\"?", corrAns: "Hemophilia", ans2: "Jaundice", ans3: "Rubella", ans4: "Syphilis", link: "http://en.wikipedia.org/wiki/Haemophilia"};
+				var question5 = {question:"In what century was the greatest number of elements discovered?", corrAns: "19th", ans2: "17th", ans3: "18th", ans4: "20th", link: "http://en.wikipedia.org/wiki/Timeline_of_chemical_element_discoveries"};
+				var question6 = {question:"Who declared himself a saint in the church of emacs?", corrAns: "Richard Stallman", ans2: "Linus Torvalds", ans3: "Bill Joy", ans4: "Bram Moolenaar", link: "http://en.wikipedia.org/wiki/Richard_Stallman"};
+				var question7 = {question:"What does a nidoligist study?", corrAns: "Bird nests", ans2: "Waves", ans3: "Clouds", ans4: "Caves", link: "https://www.google.com/search?q=nidologist&ie=utf-8&oe=utf-8&aq=t&rls=org.mozilla:en-US:official&client=firefox-a"};
+				var question8 = {question: "Who died in the Battle of Trafalgar?", corrAns: "Horatio Nelson", ans2: "Napolean Bonaparte", ans3: "Francis Drake", ans4: "Charles Martel", link: "http://en.wikipedia.org/wiki/Horatio_Nelson,_1st_Viscount_Nelson"};
+				var question9 = {question:"To which order did Martin Luther belong?", corrAns: "Augustinian", ans2: "Dominican", ans3: "Capuchin", ans4: "Franciscan", link: "http://en.wikipedia.org/wiki/Martin_Luther"}; 
+				var question10 = {question:"Who killed US President Abraham Lincoln?", corrAns: "John Wilkes Booth", ans2: "Lee Harvey Oswald", ans3: "John Hickley", ans4: "Micheal Schiavo", link: "http://en.wikipedia.org/wiki/John_Wilkes_Booth"};
+
+				var questions = [question, question1, question2, question3, question4, question5, question6, question7, question8, question9, question10];
+
+				var strQuestionNum = localStorage.getItem("questionNum");
+				var questionNum = parseInt(strQuestionNum);
+
+				if (questionNum >= questions.length) {
+					window.location.href = "end.html";
+				}
+
+				var chosenQuestion = questions[questionNum];
+				localStorage.setItem("questionNum", questionNum + 1);
+				localStorage.setItem("corrAns", chosenQuestion.corrAns);
+				localStorage.setItem("questions", questions.length);
+				localStorage.setItem("link", chosenQuestion.link); 
+				document.getElementById("question").innerHTML = chosenQuestion.question;
+				document.getElementById("corrAns").innerHTML = chosenQuestion.corrAns;
+				document.getElementById("ans2").innerHTML = chosenQuestion.ans2;
+				document.getElementById("ans3").innerHTML = chosenQuestion.ans3;
+				document.getElementById("ans4").innerHTML = chosenQuestion.ans4;
+
+				var ul = document.querySelector('ul');
+				for (var i = ul.children.length; i >= 0; i--) {
+					ul.appendChild(ul.children[Math.random() * i | 0]);
+				}
+
+				function shuffle(array) {
+					var currentIndex = array.length, temporaryValue, randomIndex;
+
+					// While there remain elements to shuffle...
+					while (0 !== currentIndex) {
+
+						// Pick a remaining element...
+						randomIndex = Math.floor(Math.random() * currentIndex);
+						currentIndex -= 1;
+
+						// And swap it with the current element.
+						temporaryValue = array[currentIndex];
+						array[currentIndex] = array[randomIndex];
+						array[randomIndex] = temporaryValue;
+					}
+
+					return array;
+				}
+			</script>
+		</body>
+	</html>
