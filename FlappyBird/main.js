@@ -12,9 +12,9 @@ var main_state = {
 		this.game.load.image('pipe', 'assets/pipe.png');
 
 		this.game.load.audio('jump', 'assets/sfx_wing.wav')
-		this.game.load.audio('fall', 'assets/sfx_die.wav')
-		this.game.load.audio('die', 'assets/sfx_hit.wav')
-		this.game.load.audio('point', 'assets/sfx_point.wav')
+			this.game.load.audio('fall', 'assets/sfx_die.wav')
+			this.game.load.audio('die', 'assets/sfx_hit.wav')
+			this.game.load.audio('point', 'assets/sfx_point.wav')
 	},
 
 	create: function() { 
@@ -49,8 +49,14 @@ var main_state = {
 			this.restart_game();
 		}
 
-		if (this.bird.angle < 20) {
-			this.bird.angle += 1;
+		if (this.bird.alive) {
+			if (this.bird.angle < 20) {
+				this.bird.angle += 1;
+			}
+		} else {
+			if (this.bird.angle < 90) {
+				this.bird.angle += 1;
+			}
 		}
 
 		this.game.physics.overlap(this.bird, this.pipes, this.hit_pipe, null, this);
