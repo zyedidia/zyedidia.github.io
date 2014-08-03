@@ -8,7 +8,7 @@ var main_state = {
 		// Function called first to load all the assets
 		this.game.stage.backgroundColor = '#71c5cf';
 
-		this.game.load.image('bird', 'assets/Bird.png');
+		this.game.load.image('bird', 'assets/bird.png');
 		this.game.load.image('pipe', 'assets/pipe.png');
 
 		this.game.load.audio('jump', 'assets/sfx_wing.wav')

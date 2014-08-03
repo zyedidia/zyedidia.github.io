@@ -114,7 +114,7 @@
 
 		//Lets first create a generic function to paint cells
 		function paint_cell(x, y, color) {
-			ctx.fillStyle = '#000000';
+			ctx.fillStyle = color;
 			ctx.fillRect(x * cw, y * cw, cw, cw);
 			ctx.strokeStyle = "white";
 			ctx.strokeRect(x * cw, y * cw, cw, cw);
