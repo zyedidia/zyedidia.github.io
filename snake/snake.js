@@ -140,7 +140,7 @@ $(document).ready(function() {
 		var snakeNumStr = prompt("How many players are there? (1 or 2)", "1");
 		var snakeNum = parseInt(snakeNumStr);
 		createSnakes(snakeNum);
-		createFoods(5);
+		createFoods(snakeNum * 2);
 		if (typeof game_loop != "undefined") clearInterval(game_loop);
 		game_loop = setInterval(draw, 60);
 	}
