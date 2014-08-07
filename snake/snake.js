@@ -6,6 +6,8 @@ $(document).ready(function() {
 	var h = $("#canvas").height(); // Height
 	var cw = 10; // Cell width
 
+	var lastTime = 0;
+
 	var keybindings = [["37", "38", "39", "40"], ["65", "87", "68", "83"]];
 	var colors = ["blue", "green", "cyan", "orange", "yellow"];
 
@@ -27,6 +29,7 @@ $(document).ready(function() {
 		this.respawn = function() {
 			this.length = 20;
 			this.body = [];
+			this.d = this.startingDir;
 			for (var i = this.length - 1; i >= 0; i--) {
 				this.body.push({x: startingPos + i, y:startingPos});
 			}
@@ -55,7 +58,7 @@ $(document).ready(function() {
 
 			var ateFood = false;
 			for (var i = 0; i < foods.length; i++) {
-				if(nx == foods[i].x && ny == foods[i].y) {
+				if (nx == foods[i].x && ny == foods[i].y) {
 					var tail = {x: nx, y: ny};
 					foods[i].respawn();
 					ateFood = true;
@@ -137,10 +140,8 @@ $(document).ready(function() {
 	}
 
 	function init() {
-		var snakeNumStr = prompt("How many players are there? (1 or 2)", "1");
-		var snakeNum = parseInt(snakeNumStr);
-		createSnakes(snakeNum);
-		createFoods(snakeNum * 2);
+		createSnakes(1);
+		createFoods(2);
 		if (typeof game_loop != "undefined") clearInterval(game_loop);
 		game_loop = setInterval(draw, 60);
 	}
@@ -154,7 +155,16 @@ $(document).ready(function() {
 			if (key == keybindings[i][1] && snakes[i].d != "down") snakes[i].d = "up";
 			if (key == keybindings[i][2] && snakes[i].d != "left") snakes[i].d = "right";
 			if (key == keybindings[i][3] && snakes[i].d != "up") snakes[i].d = "down";
+			if (key == "13") {
+				var d = new Date();
+				var n = d.getTime();
+				if (n - lastTime > 500) {
+					lastTime = n;
+					snakes.push(new Snake(snakes.length + 1, snakes.length * 5, "right"));
+					foods.push(new Food());
+					foods.push(new Food());
+				}
+			}
 		}
 	})
-
 })
