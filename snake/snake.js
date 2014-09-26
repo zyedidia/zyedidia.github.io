@@ -21,13 +21,13 @@ $(document).ready(function() {
 		this.startingPos = startingPos;
 		this.startingDir = startingDir;
 
-		this.length = 20;
+		this.length = 5;
 		for (var i = this.length - 1; i >= 0; i--) {
 			this.body.push({x: startingPos + i, y:startingPos});
 		}
 
 		this.respawn = function() {
-			this.length = 20;
+			this.length = 5;
 			this.body = [];
 			this.d = this.startingDir;
 			for (var i = this.length - 1; i >= 0; i--) {
@@ -140,7 +140,9 @@ $(document).ready(function() {
 	}
 
 	function init() {
-		createSnakes(1);
+		var numSnakesStr = window.prompt("How many snakes?", "1");
+		var numSnakes = parseInt(numSnakesStr);
+		createSnakes(numSnakes);
 		createFoods(2);
 		if (typeof game_loop != "undefined") clearInterval(game_loop);
 		game_loop = setInterval(draw, 60);
