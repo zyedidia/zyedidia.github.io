@@ -20,6 +20,7 @@ $(document).ready(function() {
 		this.d = "right";
 		this.startingPos = startingPos;
 		this.startingDir = startingDir;
+		this.canTurn = true;
 
 		this.length = 5;
 		for (var i = this.length - 1; i >= 0; i--) {
@@ -36,6 +37,7 @@ $(document).ready(function() {
 		}
 
 		this.update = function() {
+			this.canTurn = true;
 			var nx = this.body[0].x;
 			var ny = this.body[0].y;
 
@@ -145,7 +147,7 @@ $(document).ready(function() {
 		createSnakes(numSnakes);
 		createFoods(2);
 		if (typeof game_loop != "undefined") clearInterval(game_loop);
-		game_loop = setInterval(draw, 60);
+		game_loop = setInterval(draw, 30);
 	}
 
 	init();
@@ -153,10 +155,12 @@ $(document).ready(function() {
 	$(document).keydown(function(e) {
 		var key = e.which;
 		for (var i = 0; i < keybindings.length; i++) {
-			if (key == keybindings[i][0] && snakes[i].d != "right") snakes[i].d = "left";
-			if (key == keybindings[i][1] && snakes[i].d != "down") snakes[i].d = "up";
-			if (key == keybindings[i][2] && snakes[i].d != "left") snakes[i].d = "right";
-			if (key == keybindings[i][3] && snakes[i].d != "up") snakes[i].d = "down";
+			if (key == keybindings[i][0] && snakes[i].d != "right" && snakes[i].canTurn) { snakes[i].d = "left"; snakes[i].canTurn = false; }
+			if (key == keybindings[i][1] && snakes[i].d != "down" && snakes[i].canTurn) { snakes[i].d = "up"; snakes[i].canTurn = false; }
+			if (key == keybindings[i][2] && snakes[i].d != "left" && snakes[i].canTurn) { snakes[i].d = "right"; snakes[i].canTurn = false; }
+
+			if (key == keybindings[i][3] && snakes[i].d != "up" && snakes[i].canTurn) { snakes[i].d = "down"; snakes[i].canTurn = false; }
+
 			if (key == "13") {
 				var d = new Date();
 				var n = d.getTime();
