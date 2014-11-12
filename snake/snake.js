@@ -147,7 +147,7 @@ $(document).ready(function() {
 		createSnakes(numSnakes);
 		createFoods(2);
 		if (typeof game_loop != "undefined") clearInterval(game_loop);
-		game_loop = setInterval(draw, 30);
+		game_loop = setInterval(draw, 60);
 	}
 
 	init();
