@@ -8,7 +8,7 @@ $(document).ready(function() {
 
 	var lastTime = 0;
 
-	var keybindings = [["37", "38", "39", "40"], ["65", "87", "68", "83"]];
+	var keybindings = [["37", "38", "39", "40"], ["65", "87", "68", "83"], ["72", "75", "76", "74"]];
 	var colors = ["blue", "green", "cyan", "orange", "yellow"];
 
 	var snakes;
@@ -24,7 +24,7 @@ $(document).ready(function() {
 
 		this.length = 5;
 		for (var i = this.length - 1; i >= 0; i--) {
-			this.body.push({x: startingPos + i, y:startingPos});
+			this.body.push({x: startingPos.x + i, y: startingPos.y});
 		}
 
 		this.respawn = function() {
@@ -32,7 +32,7 @@ $(document).ready(function() {
 			this.body = [];
 			this.d = this.startingDir;
 			for (var i = this.length - 1; i >= 0; i--) {
-				this.body.push({x: startingPos + i, y:startingPos});
+				this.body.push({x: startingPos.x + i, y: startingPos.y});
 			}
 		}
 
@@ -97,8 +97,8 @@ $(document).ready(function() {
 
 
 	function check_collision(x, y, array) {
-		//This function will check if the provided x/y coordinates exist
-		//in an array of cells or not
+		// This function will check if the provided x/y coordinates exist
+		// In an array of cells or not
 		for(var i = 0; i < array.length; i++) {
 			if(array[i].x == x && array[i].y == y)
 				return true;
@@ -130,7 +130,7 @@ $(document).ready(function() {
 	function createSnakes(numSnakes) {
 		snakes = [];
 		for (var i = 1; i <= numSnakes; i++) {
-			snakes[i - 1] = new Snake(i, i + 5, "right");
+			snakes[i - 1] = new Snake(i, {x: 5, y: i + 5}, "right");
 		}
 	}
 
@@ -154,23 +154,11 @@ $(document).ready(function() {
 
 	$(document).keydown(function(e) {
 		var key = e.which;
-		for (var i = 0; i < keybindings.length; i++) {
-			if (key == keybindings[i][0] && snakes[i].d != "right" && snakes[i].canTurn) { snakes[i].d = "left"; snakes[i].canTurn = false; }
-			if (key == keybindings[i][1] && snakes[i].d != "down" && snakes[i].canTurn) { snakes[i].d = "up"; snakes[i].canTurn = false; }
-			if (key == keybindings[i][2] && snakes[i].d != "left" && snakes[i].canTurn) { snakes[i].d = "right"; snakes[i].canTurn = false; }
-
-			if (key == keybindings[i][3] && snakes[i].d != "up" && snakes[i].canTurn) { snakes[i].d = "down"; snakes[i].canTurn = false; }
-
-			if (key == "13") {
-				var d = new Date();
-				var n = d.getTime();
-				if (n - lastTime > 500) {
-					lastTime = n;
-					snakes.push(new Snake(snakes.length + 1, snakes.length * 5, "right"));
-					foods.push(new Food());
-					foods.push(new Food());
-				}
-			}
+		for (var i = 0; i < keybindings.length - 1; i++) {
+			if ((key == keybindings[i][0] || key == keybindings[2][0]) && snakes[i].d != "right" && snakes[i].canTurn) { snakes[i].d = "left"; snakes[i].canTurn = false; }
+			if ((key == keybindings[i][1] || key == keybindings[2][1]) && snakes[i].d != "down" && snakes[i].canTurn) { snakes[i].d = "up"; snakes[i].canTurn = false; }
+			if ((key == keybindings[i][2] || key == keybindings[2][2]) && snakes[i].d != "left" && snakes[i].canTurn) { snakes[i].d = "right"; snakes[i].canTurn = false; }
+			if ((key == keybindings[i][3] || key == keybindings[2][3]) && snakes[i].d != "up" && snakes[i].canTurn) { snakes[i].d = "down"; snakes[i].canTurn = false; }
 		}
 	})
 })
