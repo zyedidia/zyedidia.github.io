@@ -14,7 +14,6 @@ Slider = function(game, x, y, indicatorKey, barKey, min, max) {
 Slider.prototype.update = function() {
 	if (this.indicator.visible === true) {
 		if (this.bar.input.pointerOver() && game.input.mousePointer.isDown) {
-			console.log("Input");
 			var x = (game.input.mousePointer.position.x - this.x) / this.sliderValPx;
 			var maximumX = this.x + Math.abs(this.max) * this.sliderValPx;
 			var minimumX = this.x - Math.abs(this.min) * this.sliderValPx;
@@ -65,7 +64,6 @@ Indicator.prototype.constructor = Indicator;
 
 Indicator.prototype.setValue = function(value) {
 	this.value = parseInt(value);
-	console.log("Value: " + this.value);
 
 	this.text.setText(this.value);
 }

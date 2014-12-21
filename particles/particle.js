@@ -2,7 +2,6 @@ Particle = function(game, x, y, charge) {
 	var image = ((charge > 0) ? "blue" : "red") + "_circle";
 	Phaser.Sprite.call(this, game, x, y, image);
 	this.charge = charge;
-	console.log("Instantiated with charge: " + this.charge);
 
 	this.width = 30;
 	this.height = 30;
@@ -18,6 +17,16 @@ Particle = function(game, x, y, charge) {
 
 Particle.prototype = Object.create(Phaser.Sprite.prototype);
 Particle.prototype.constructor = Particle;
+
+Particle.prototype.setPosition = function(x, y) {
+	this.x = x; this.y = y;
+	this.text.x = x; this.text.y = y;
+}
+
+Particle.prototype.remove = function() {
+	this.destroy();
+	this.text.destroy();
+}
 
 Particle.prototype.update = function() {
 }
