@@ -1,16 +1,3 @@
-// var Particle = Phaser.Sprite.extend({
-// 	construct: function(game, x, y, key, charge) {
-// 		Phaser.Sprite.call(this, game, x, y, key);
-// 		this.charge = charge;
-// 		console.log("Construct");
-// 	},
-//
-// 	update: function() {
-// 		Phaser.Sprite.update();
-// 		console.log("Hello");
-// 	}
-// })
-
 Particle = function(game, x, y, charge) {
 	var image = ((charge > 0) ? "blue" : "red") + "_circle";
 	Phaser.Sprite.call(this, game, x, y, image);
@@ -33,5 +20,4 @@ Particle.prototype = Object.create(Phaser.Sprite.prototype);
 Particle.prototype.constructor = Particle;
 
 Particle.prototype.update = function() {
-	console.log("Update!");
 }
