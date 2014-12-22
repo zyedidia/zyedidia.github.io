@@ -37,6 +37,8 @@ var main_state = {
 
 		game.input.onUp.add(onUp, this);
 		game.input.onDown.add(mouseClick, this);
+		game.input.touch.touchEndCallback = onUp;
+		game.input.touch.touchEnterCallback = mouseClick;
 
 		function onUp() {
 			console.log("Trash pointer over: " + this.trash.input.pointerOver());
