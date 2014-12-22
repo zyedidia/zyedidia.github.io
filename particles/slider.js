@@ -13,8 +13,8 @@ Slider = function(game, x, y, indicatorKey, barKey, min, max) {
 
 Slider.prototype.update = function() {
 	if (this.indicator.visible === true) {
-		if (this.bar.input.pointerOver() && game.input.mousePointer.isDown) {
-			var x = (game.input.mousePointer.position.x - this.x) / this.sliderValPx;
+		if (this.bar.input.pointerOver() && game.input.activePointer.isDown) {
+			var x = (game.input.activePointer.position.x - this.x) / this.sliderValPx;
 			var maximumX = this.x + Math.abs(this.max) * this.sliderValPx;
 			var minimumX = this.x - Math.abs(this.min) * this.sliderValPx;
 

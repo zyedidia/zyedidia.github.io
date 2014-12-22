@@ -62,8 +62,8 @@ var main_state = {
 			}
 			if (!this.popupMenu) {
 				this.popupMenu = true;
-				var mouseX = game.input.mousePointer.x;
-				var mouseY = game.input.mousePointer.y;
+				var mouseX = game.input.activePointer.x;
+				var mouseY = game.input.activePointer.y;
 
 				this.slider.setPosition(mouseX, mouseY + 20);
 				this.slider.setVisible(true);
@@ -93,8 +93,8 @@ var main_state = {
 	update: function() {
 		for (i in this.particles) {
 			if (this.draggingParticle == this.particles[i]) {
-				var x = game.input.mousePointer.x;
-				var y = game.input.mousePointer.y;
+				var x = game.input.activePointer.x;
+				var y = game.input.activePointer.y;
 				this.draggingParticle.setPosition(x, y);
 			}
 		}
