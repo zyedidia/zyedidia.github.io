@@ -21,14 +21,16 @@ var main_state = {
 	create: function() {
 		console.log("Create");
 
-		this.popupMenu = false;
+		this.running = false;
+
 		this.dragging = false;
 		this.draggingParticle = null;
 
-		this.particle = new Particle(game, 100, 100, 5);
+		this.particle = new Particle(game, 100, 100, 5, true);
 		this.particles = [];
 
-		this.slider = new Slider(game, 0, 0, "indicator", "bar", -5, 5);
+		this.popupMenu = new PopupMenu(game, 0, 0);
+		this.popupMenu.setVisible(false);
 
 		this.trash = new Phaser.Sprite(game, 0, 0, "trash");
 		this.trash.inputEnabled = true;
@@ -37,13 +39,9 @@ var main_state = {
 
 		game.input.onUp.add(onUp, this);
 		game.input.onDown.add(mouseClick, this);
-		game.input.touch.touchEndCallback = onUp;
-		game.input.touch.touchEnterCallback = mouseClick;
 
 		function onUp() {
-			console.log("Trash pointer over: " + this.trash.input.pointerOver());
 			if (this.trash.input.pointerOver() && this.dragging) {
-				console.log("Removing");
 				var index = this.particles.indexOf(this.draggingParticle);
 				this.particles[index].remove();
 				this.particles.splice(index, 1);
@@ -62,32 +60,12 @@ var main_state = {
 					}
 				}
 			}
-			if (!this.popupMenu) {
-				this.popupMenu = true;
+			if (!this.popupMenu.visible) {
 				var mouseX = game.input.activePointer.x;
 				var mouseY = game.input.activePointer.y;
 
-				this.slider.setPosition(mouseX, mouseY + 20);
-				this.slider.setVisible(true);
-
-				var okbutton = new Phaser.Button(game, mouseX, mouseY + 80, "okbutton", placeParticle, this);
-				okbutton.x = mouseX; okbutton.y = mouseY;
-				okbutton.width = 35; okbutton.height = 20;
-				okbutton.anchor.setTo(0.5, 0.5);
-
-				game.add.existing(okbutton);
-			}
-
-			function placeParticle() {
-				var newParticle = new Particle(game, mouseX, mouseY, this.slider.indicator.value);
-				newParticle.inputEnabled = true;
-				this.particles.push(newParticle);
-				this.slider.setVisible(false);
-				okbutton.destroy();
-
-				this.popupMenu = false;
-
-				this.trash.bringToTop();
+				this.popupMenu.setVisible(true);
+				this.popupMenu.setPosition(mouseX, mouseY);
 			}
 		}
 	},
@@ -100,7 +78,12 @@ var main_state = {
 				this.draggingParticle.setPosition(x, y);
 			}
 		}
-		this.slider.update();
+		this.popupMenu.update();
+	},
+
+	addParticle: function(particle) {
+		this.particles.push(particle);
+		this.trash.bringToTop();
 	}
 };
 

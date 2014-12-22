@@ -1,5 +1,8 @@
-Particle = function(game, x, y, charge) {
+Particle = function(game, x, y, charge, isMainParticle = false) {
 	var image = ((charge > 0) ? "blue" : "red") + "_circle";
+	if (isMainParticle) {
+		image = "green_circle";
+	}
 	Phaser.Sprite.call(this, game, x, y, image);
 	this.charge = charge;
 

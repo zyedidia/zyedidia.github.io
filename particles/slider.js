@@ -49,7 +49,7 @@ Indicator = function(game, x, y, key) {
 	this.anchor.setTo(0.5, 0.5);
 	this.width = 15;
 	this.height = 15;
-	this.value = value = 0;
+	this.value = 1;
 
 	var style = { font: "15px Arial", fill: "#FFFFFF", align: "left" };
 	this.text = new Phaser.Text(game, x, y + this.height, this.value, style);
@@ -63,6 +63,11 @@ Indicator.prototype = Object.create(Phaser.Sprite.prototype);
 Indicator.prototype.constructor = Indicator;
 
 Indicator.prototype.setValue = function(value) {
+	if (value < 0 && value > -1) {
+		value = -1;
+	} else if (value >= 0 && value < 1) {
+		value = 1;
+	}
 	this.value = parseInt(value);
 
 	this.text.setText(this.value);
