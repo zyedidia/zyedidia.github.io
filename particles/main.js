@@ -7,7 +7,7 @@ var main_state = {
 	preload: function() {
 		console.log("Preload");
 
-		this.game.stage.backgroundColor = '#71c5cf';
+		game.stage.backgroundColor = '#71c5cf';
 
 		game.load.image("green_circle", "assets/green_circle.png");
 		game.load.image("blue_circle", "assets/blue_circle.png");
@@ -26,7 +26,23 @@ var main_state = {
 		this.dragging = false;
 		this.draggingParticle = null;
 
-		this.particle = new Particle(game, 100, 100, 5, true);
+		this.runButton = new Phaser.Button(game, 75, 20, "okbutton", toggleRun, this);
+		this.runButton.anchor.setTo(0.5, 0.5);
+		this.runButton.width = 35; this.runButton.height = 20;
+		this.runButton.inputEnabled = true;
+		game.add.existing(this.runButton);
+
+		function toggleRun() {
+			console.log("here");
+			this.running = !this.running;
+			console.log("running: " + this.running);
+			if (!this.running) {
+				this.mainParticle.remove();
+				this.mainParticle = new Particle(game, 100, 100, 5, true);
+			}
+		}
+
+		this.mainParticle = new Particle(game, 100, 100, 5, true);
 		this.particles = [];
 
 		this.popupMenu = new PopupMenu(game, 0, 0);
@@ -51,34 +67,42 @@ var main_state = {
 		}
 
 		function mouseClick() {
-			for (i in this.particles) {
-				if (this.particles[i].input.pointerOver()) {
-					this.dragging = !this.dragging;
-					if (this.dragging) {
-						this.draggingParticle = this.particles[i];
-						return;
+			console.log(this.runButton.input.pointerOver());
+			if (!this.running && !this.runButton.input.pointerOver()) {
+				for (i in this.particles) {
+					if (this.particles[i].input.pointerOver()) {
+						this.dragging = !this.dragging;
+						if (this.dragging) {
+							this.draggingParticle = this.particles[i];
+							return;
+						}
 					}
 				}
-			}
-			if (!this.popupMenu.visible) {
-				var mouseX = game.input.activePointer.x;
-				var mouseY = game.input.activePointer.y;
+				if (!this.popupMenu.visible) {
+					var mouseX = game.input.activePointer.x;
+					var mouseY = game.input.activePointer.y;
 
-				this.popupMenu.setVisible(true);
-				this.popupMenu.setPosition(mouseX, mouseY);
+					this.popupMenu.setVisible(true);
+					this.popupMenu.setPosition(mouseX, mouseY);
+				}
 			}
 		}
 	},
 
 	update: function() {
-		for (i in this.particles) {
-			if (this.draggingParticle == this.particles[i]) {
+		if (!this.running) {
+			if (this.draggingParticle) {
 				var x = game.input.activePointer.x;
 				var y = game.input.activePointer.y;
 				this.draggingParticle.setPosition(x, y);
 			}
+
+			this.popupMenu.update();
+		} else {
+			this.mainParticle.updatePosition(this.particles);
+			game.add.existing(this.mainParticle);
 		}
-		this.popupMenu.update();
+
 	},
 
 	addParticle: function(particle) {
