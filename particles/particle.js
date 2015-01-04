@@ -41,9 +41,7 @@ Particle.prototype.updatePosition = function(particles) {
 		var distance = Math.sqrt((this.x - p.x)*(this.x - p.x) + (this.y - p.y)*(this.y - p.y));
 
 		var distanceSquared = distance*distance;
-		console.log(distanceSquared);
 		var force = this.charge * p.charge / distanceSquared;
-		console.log(force);
 
 		this.vx += force * (this.x - p.x) / distance;
 		this.vy += force * (this.y - p.y) / distance;

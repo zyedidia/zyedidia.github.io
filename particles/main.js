@@ -6,6 +6,7 @@ var game = new Phaser.Game(((h > w) ? h : w) - 50, ((h > w) ? w : h) - 50, Phase
 var main_state = {
 	preload: function() {
 		console.log("Preload");
+		game.time.advancedTiming = true;
 
 		game.stage.backgroundColor = '#71c5cf';
 
@@ -90,6 +91,7 @@ var main_state = {
 	},
 
 	update: function() {
+		console.log("fps: " + game.time.fps);
 		if (!this.running) {
 			if (this.draggingParticle) {
 				var x = game.input.activePointer.x;
@@ -100,9 +102,7 @@ var main_state = {
 			this.popupMenu.update();
 		} else {
 			this.mainParticle.updatePosition(this.particles);
-			game.add.existing(this.mainParticle);
 		}
-
 	},
 
 	addParticle: function(particle) {
