@@ -11,10 +11,10 @@ var main_state = {
 		this.game.load.image('bird', 'assets/bird.png');
 		this.game.load.image('pipe', 'assets/pipe.png');
 
-		this.game.load.audio('jump', 'assets/sfx_wing.wav')
-			this.game.load.audio('fall', 'assets/sfx_die.wav')
-			this.game.load.audio('die', 'assets/sfx_hit.wav')
-			this.game.load.audio('point', 'assets/sfx_point.wav')
+		this.game.load.audio('jump', 'assets/sfx_wing.wav');
+		this.game.load.audio('fall', 'assets/sfx_die.wav');
+		this.game.load.audio('die', 'assets/sfx_hit.wav');
+		this.game.load.audio('point', 'assets/sfx_point.wav');
 	},
 
 	create: function() { 

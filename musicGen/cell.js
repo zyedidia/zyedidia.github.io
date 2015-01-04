@@ -3,7 +3,7 @@ Cell = function(x, y, dir, index, color = "blue") {
 	this.y = y;
 	this.dir = dir;
 	this.index = index;
-	this.color = color;
+	this.color = "blue";
 }
 
 Cell.prototype.updatePosition = function() {
@@ -30,11 +30,8 @@ Cell.prototype.checkCollisions = function(cells) {
 
 	for (i in cells) {
 		if (i != this.index) {
-			// console.log(i + " " + this.index);
-			curXY = [this.x, this.y];
 			var otherCell = cells[i];
 			if ((this.x == otherCell.x) && (this.y == otherCell.y)) {
-				console.log("collide");
 				this.clockwiseDir();
 			}
 		}
