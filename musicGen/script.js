@@ -1,3 +1,8 @@
+var url = document.URL;
+if (url.indexOf('#') > -1) {
+	console.log(Math.seedrandom(url.substring(url.indexOf('#') + 1)));
+}
+
 var dirs = ["up", "down", "right", "left"];
 var colors = ["blue", "red", "green", "yellow", "orange"];
 

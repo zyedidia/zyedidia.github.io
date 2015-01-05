@@ -1,4 +1,4 @@
-Cell = function(x, y, dir, index, color = "blue") {
+Cell = function(x, y, dir, index, color) {
 	this.x = x;
 	this.y = y;
 	this.dir = dir;
