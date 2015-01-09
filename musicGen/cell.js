@@ -60,7 +60,7 @@ Cell.prototype.playTone = function(tone) {
 	if (tone >= 0 && tone <= 8) {
 		var name = "soundFiles/" + tone;
 		var sound = new Howl({
-			urls: [name + '.mp3', name + '.ogg']
+			urls: [name + '.mp3', 'soundFiles/tone' + tone + '.ogg']
 		}).play();
 	}
 }
