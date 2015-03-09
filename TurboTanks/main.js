@@ -26,18 +26,13 @@ function setupWorld() {
 	var obstacle = new Obstacle(image2, world, 20, 20, 10, 2, 2);
 	sprites.push(obstacle);
 
+	var obstacle2 = new Obstacle(image2, world, 5, 20, 10, 2, 2);
+	sprites.push(obstacle2);
+
 	var fixDef = new b2FixtureDef;
 	fixDef.density = 1.0;
 	fixDef.friction = 0.5;
 	var bodyDef = new b2BodyDef;
-
-	//create ground
-	bodyDef.type = b2Body.b2_staticBody;
-	bodyDef.position.x = 15;
-	bodyDef.position.y = 30;
-	fixDef.shape = new b2PolygonShape;
-	fixDef.shape.SetAsBox(10, 0.5);
-	world.CreateBody(bodyDef).CreateFixture(fixDef);
 
 	var debugDraw = new b2DebugDraw();
 	debugDraw.SetSprite(ctx);
