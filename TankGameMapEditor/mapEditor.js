@@ -122,13 +122,13 @@ function render() {
 		ctx.strokeStyle = "lightgreen";
 		ctx.lineWidth = 2;
 		var toRadians = Math.PI / 180;
+
 		ctx.save();
 		ctx.translate(selectedSprite.x * scale, selectedSprite.y * scale);
 		ctx.rotate(toRadians * selectedSprite.angle);
-		ctx.strokeRect(-selectedSprite.width * scale / 2, -selectedSprite.height * scale / 2, selectedSprite.width * scale, selectedSprite.height * scale)
+		ctx.strokeRect(-selectedSprite.width * scale / 2, -selectedSprite.height * scale / 2, selectedSprite.width * scale, selectedSprite.height * scale);
 
-			// ctx.strokeRect(selectedSprite.x * scale - selectedSprite.width * scale / 2, selectedSprite.y * scale - selectedSprite.height * scale / 2, selectedSprite.width * scale, selectedSprite.height * scale);
-			ctx.restore();
+		ctx.restore();
 	}
 
 	ctx.restore();
@@ -159,18 +159,18 @@ function getSelectedSprite(p) {
 	var resultSprite = null;
 	for (var i in sprites) {
 		var s = sprites[i];
-		var a = {x: s.x - s.width, y: s.y + s.height};
-		var b = {x: s.x - s.width, y: s.y - s.height};
-		var c = {x: s.x + s.width, y: s.y + s.height};
-		var d = {x: s.x + s.width, y: s.y - s.height};
+		var a = {x: s.x - s.width / 2, y: s.y + s.height / 2};
+		var b = {x: s.x - s.width / 2, y: s.y - s.height / 2};
+		var c = {x: s.x + s.width / 2, y: s.y + s.height / 2};
+		var d = {x: s.x + s.width / 2, y: s.y - s.height / 2};
 
 		var sum = getTriangleArea(a, p, d);
 		sum += getTriangleArea(d, p, c);
 		sum += getTriangleArea(c, p, b);
 		sum += getTriangleArea(p, b, a);
 
-		var rectArea = s.width * 2 * s.height * 2;
-		console.log(rectArea);
+		var rectArea = s.width * s.height;
+		console.log(sum + " " + rectArea);
 		if (sum < rectArea) {
 			resultSprite = s;
 		}
