@@ -3,7 +3,7 @@ Cell = function(x, y, dir, index, color) {
 	this.y = y;
 	this.dir = dir;
 	this.index = index;
-	this.color = "blue";
+	this.color = color;
 }
 
 Cell.prototype.updatePosition = function() {

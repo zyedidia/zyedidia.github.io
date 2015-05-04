@@ -1,10 +1,13 @@
-var url = document.URL;
-if (url.indexOf('#') > -1) {
-	console.log(Math.seedrandom(url.substring(url.indexOf('#') + 1)));
-}
+// var url = document.URL;
+// if (url.indexOf('#') > -1) {
+// 	console.log(Math.seedrandom(url.substring(url.indexOf('#') + 1)));
+//
+// }
+
+Math.seedrandom();
 
 var dirs = ["up", "down", "right", "left"];
-var colors = ["blue", "red", "green", "yellow", "orange"];
+var colors = ["blue", "red", "green", "yellow"];
 
 //Canvas stuff
 var canvas = $("#canvas")[0];
