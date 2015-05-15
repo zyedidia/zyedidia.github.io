@@ -2070,7 +2070,43 @@ Elm.Main.make = function (_elm) {
                  _L.fromArray([$Graphics$Collage.toForm(state.winText)]))));
               }();}
          _U.badCase($moduleName,
-         "between lines 146 and 149");
+         "between lines 170 and 173");
+      }();
+   });
+   var contains = F2(function (list,
+   f) {
+      return _U.cmp($List.length($Basics.fst(A2($List.partition,
+      f,
+      list))),
+      0) > 0;
+   });
+   var collide = F2(function (sprites,
+   sprite) {
+      return A2(contains,
+      sprites,
+      function (x) {
+         return A2($AABB.intersects,
+         sprite.box,
+         x.box) && ($Basics.not(_U.eq(x.box,
+         sprite.box)) && ($Basics.not(sprite.isBullet && x.isPlayer) && ($Basics.not(sprite.isAsteroid && x.isAsteroid) && $Basics.not(sprite.isPlayer && x.isBullet))));
+      });
+   });
+   var wrap = F3(function (sprite,
+   w,
+   h) {
+      return function () {
+         var $ = sprite.box.position,
+         x = $._0,
+         y = $._1;
+         return {_: {}
+                ,position: {ctor: "_Tuple2"
+                           ,_0: _U.cmp(x,
+                           w / 2) > 0 ? (0 - w) / 2 : _U.cmp(x,
+                           (0 - w) / 2) < 0 ? w / 2 : x
+                           ,_1: _U.cmp(y,
+                           h / 2) > 0 ? (0 - h) / 2 : _U.cmp(y,
+                           (0 - h) / 2) < 0 ? h / 2 : y}
+                ,size: sprite.box.size};
       }();
    });
    var maxSpeed = 4;
@@ -2094,15 +2130,10 @@ Elm.Main.make = function (_elm) {
          input.dimensions),
          w = $._0,
          h = $._1;
-         var translateBox = {_: {}
-                            ,position: {ctor: "_Tuple2"
-                                       ,_0: $Basics.not(sprite.isBullet) && _U.cmp(x,
-                                       w / 2) > 0 ? (0 - w) / 2 : $Basics.not(sprite.isBullet) && _U.cmp(x,
-                                       (0 - w) / 2) < 0 ? w / 2 : x
-                                       ,_1: $Basics.not(sprite.isBullet) && _U.cmp(y,
-                                       h / 2) > 0 ? (0 - h) / 2 : $Basics.not(sprite.isBullet) && _U.cmp(y,
-                                       (0 - h) / 2) < 0 ? h / 2 : y}
-                            ,size: sprite.box.size};
+         var translateBox = $Basics.not(sprite.isBullet) ? A3(wrap,
+         sprite,
+         w,
+         h) : sprite.box;
          var dt = input.dt / 1000;
          var sprite$ = _U.replace([["box"
                                    ,{_: {}
@@ -2111,17 +2142,14 @@ Elm.Main.make = function (_elm) {
                                     dt,
                                     sprite.velocity),
                                     translateBox).position
-                                    ,size: _U.cmp($List.length($Basics.fst(A2($List.partition,
-                                    function (x) {
-                                       return A2($AABB.intersects,
-                                       sprite.box,
-                                       x.box) && ($Basics.not(_U.eq(x.box,
-                                       sprite.box)) && ($Basics.not(sprite.isBullet && x.isPlayer) && ($Basics.not(sprite.isAsteroid && x.isAsteroid) && $Basics.not(sprite.isPlayer && x.isBullet))));
-                                    },
-                                    state.sprites))),
-                                    0) > 0 ? {ctor: "_Tuple2"
-                                             ,_0: 0
-                                             ,_1: 0} : sprite.box.size}]
+                                    ,size: A2(collide,
+                                    state.sprites,
+                                    sprite) ? sprite.isAsteroid && _U.cmp($Basics.fst(sprite.box.size),
+                                    20) > 0 ? {ctor: "_Tuple2"
+                                              ,_0: $Basics.fst(sprite.box.size) / 1.5
+                                              ,_1: $Basics.snd(sprite.box.size) / 1.5} : {ctor: "_Tuple2"
+                                                                                         ,_0: 0
+                                                                                         ,_1: 0} : sprite.box.size}]
                                   ,["velocity"
                                    ,A2($Vec2._op["<+>"],
                                    sprite.velocity,
@@ -2181,46 +2209,10 @@ Elm.Main.make = function (_elm) {
          switch (_v4.ctor)
          {case "Just": return _v4._0;}
          _U.badCase($moduleName,
-         "between lines 67 and 68");
+         "between lines 69 and 70");
       }();
    });
    var cooldown = 50;
-   var update = F2(function (input,
-   state) {
-      return function () {
-         var spritesArray = $Array.fromList(state.sprites);
-         var player = A2(get,
-         0,
-         spritesArray);
-         var sprites$ = A2($Basics._op["++"],
-         A2($List.map,
-         function (x) {
-            return A3(updateSprite,
-            input,
-            x,
-            state);
-         },
-         state.sprites),
-         input.space && (_U.cmp(state.cooldown,
-         0) < 1 && _U.cmp($Basics.fst(player.box.size),
-         0) > 0) ? _L.fromArray([addBullet(player)]) : _L.fromArray([]));
-         return _U.replace([["sprites"
-                            ,sprites$]
-                           ,["cooldown"
-                            ,input.space && _U.cmp(state.cooldown,
-                            0) < 1 ? cooldown : state.cooldown - 1]
-                           ,["winText"
-                            ,_U.eq($Basics.fst(player.box.size),
-                            0) ? whiteText("You lose") : _U.cmp($List.length($Basics.fst(A2($List.partition,
-                            function (x) {
-                               return x.isAsteroid && $Basics.not(_U.eq($Basics.fst(x.box.size),
-                               0));
-                            },
-                            sprites$))),
-                            0) < 1 ? whiteText("You win") : whiteText("")]],
-         state);
-      }();
-   });
    var pseudo = F3(function (i,
    seed,
    mag) {
@@ -2236,15 +2228,12 @@ Elm.Main.make = function (_elm) {
    function (i) {
       return A3(pseudo,i,4812,300);
    },
-   _L.range(1,100));
+   _L.range(1,1000));
    var randArray = $Array.fromList(randList);
-   var addAsteroid = function (i) {
+   var addAsteroid = F3(function (size,
+   pos,
+   i) {
       return function () {
-         var $ = {ctor: "_Tuple2"
-                 ,_0: A2(get,i + 3,randArray)
-                 ,_1: A2(get,i + 4,randArray)},
-         x = $._0,
-         y = $._1;
          var randSpeed = A2(get,
          i + 2,
          randArray);
@@ -2257,12 +2246,8 @@ Elm.Main.make = function (_elm) {
          return {_: {}
                 ,angle: randAngle
                 ,box: {_: {}
-                      ,position: {ctor: "_Tuple2"
-                                 ,_0: x
-                                 ,_1: y}
-                      ,size: {ctor: "_Tuple2"
-                             ,_0: 20
-                             ,_1: 20}}
+                      ,position: pos
+                      ,size: size}
                 ,image: "img/asteroid.png"
                 ,isAsteroid: true
                 ,isBullet: false
@@ -2274,7 +2259,7 @@ Elm.Main.make = function (_elm) {
                            ,_0: 0
                            ,_1: 0}};
       }();
-   };
+   });
    var startingSprites = A2($Basics._op["++"],
    _L.fromArray([{_: {}
                  ,angle: 0
@@ -2297,21 +2282,101 @@ Elm.Main.make = function (_elm) {
                             ,_1: 0}}]),
    A2($List.map,
    function (i) {
-      return addAsteroid(i);
+      return A3(addAsteroid,
+      {ctor: "_Tuple2",_0: 25,_1: 25},
+      {ctor: "_Tuple2"
+      ,_0: A2(get,i + 3,randArray)
+      ,_1: A2(get,i + 4,randArray)},
+      i);
    },
-   _L.range(0,10)));
-   var State = F3(function (a,
+   _L.range(0,3)));
+   var State = F4(function (a,
    b,
-   c) {
+   c,
+   d) {
       return {_: {}
-             ,cooldown: c
+             ,cooldown: d
              ,sprites: a
-             ,winText: b};
+             ,winText: c
+             ,winner: b};
    });
-   var state = A3(State,
+   var None = {ctor: "None"};
+   var state = A4(State,
    startingSprites,
+   None,
    whiteText(""),
    0);
+   var Lose = {ctor: "Lose"};
+   var Win = {ctor: "Win"};
+   var update = F2(function (input,
+   state) {
+      return function () {
+         var spritesArray = $Array.fromList(state.sprites);
+         var player = A2(get,
+         0,
+         spritesArray);
+         var sprites$ = A2($Basics._op["++"],
+         A2($List.map,
+         function (x) {
+            return A3(updateSprite,
+            input,
+            x,
+            state);
+         },
+         state.sprites),
+         input.space && (_U.cmp(state.cooldown,
+         0) < 1 && _U.cmp($Basics.fst(player.box.size),
+         0) > 0) ? _L.fromArray([addBullet(player)]) : A3($List.foldr,
+         F2(function (x,y) {
+            return A2($Basics._op["++"],
+            x,
+            y);
+         }),
+         _L.fromArray([]),
+         A2($List.map,
+         function (x) {
+            return A2(collide,
+            state.sprites,
+            x) && _U.cmp($Basics.fst(x.box.size),
+            20) > 0 ? _L.fromArray([A3(addAsteroid,
+            {ctor: "_Tuple2"
+            ,_0: $Basics.fst(x.box.size) / 1.5
+            ,_1: $Basics.snd(x.box.size) / 1.5},
+            x.box.position,
+            A3($Basics.clamp,
+            $Basics.round($Basics.fst(x.box.position)),
+            10,
+            90))]) : _L.fromArray([]);
+         },
+         state.sprites)));
+         var winner$ = _U.eq($Basics.fst(player.box.size),
+         0) ? Lose : $Basics.not(A2(contains,
+         sprites$,
+         function (x) {
+            return x.isAsteroid && $Basics.not(_U.eq($Basics.fst(x.box.size),
+            0));
+         })) ? Win : None;
+         return _U.replace([["sprites"
+                            ,sprites$]
+                           ,["cooldown"
+                            ,input.space && _U.cmp(state.cooldown,
+                            0) < 1 ? cooldown : state.cooldown - 1]
+                           ,["winner",winner$]
+                           ,["winText"
+                            ,function () {
+                               switch (winner$.ctor)
+                               {case "Lose":
+                                  return whiteText("You lose!");
+                                  case "None":
+                                  return whiteText("");
+                                  case "Win":
+                                  return whiteText("You win!");}
+                               _U.badCase($moduleName,
+                               "between lines 128 and 132");
+                            }()]],
+         state);
+      }();
+   });
    var main = A2($Signal._op["~"],
    A2($Signal._op["<~"],
    view,
@@ -2355,6 +2420,9 @@ Elm.Main.make = function (_elm) {
    };
    _elm.Main.values = {_op: _op
                       ,Sprite: Sprite
+                      ,Win: Win
+                      ,Lose: Lose
+                      ,None: None
                       ,State: State
                       ,startingSprites: startingSprites
                       ,pseudo: pseudo
@@ -2368,6 +2436,9 @@ Elm.Main.make = function (_elm) {
                       ,maxSpeed: maxSpeed
                       ,update: update
                       ,updateSprite: updateSprite
+                      ,wrap: wrap
+                      ,collide: collide
+                      ,contains: contains
                       ,view: view
                       ,Input: Input
                       ,framerate: framerate
