@@ -2,8 +2,19 @@
 	<head>
         <meta charset="utf-8"/><title>TankGame</title>
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script>
+            $(document).ready(function(){
+                $("#hide-btn").click(function(){
+                    $("#instructions").hide();
+                });
+            });
+        </script>
     </head>
 	<body style="margin:0;padding:0;" id="body">
+        <div id="instructions">
+            Scroll down for controls.
+            <button id="hide-btn" type="button">Ok!</button>
+        </div>
 		<canvas id="webgl" globalevents="0" style="width:100%"></canvas>
 		<script type="text/javascript" src="tankgame.js"></script>
 
