@@ -1,0 +1,59 @@
+
+/* Bootstrap doesn't provide an extra large button */
+.btn-xlg {
+    padding: 18px 28px;
+    font-size: 22px;
+    line-height: normal;
+    -webkit-border-radius: 8px;
+    -moz-border-radius: 8px;
+    border-radius: 8px;
+}
+
+@media (min-width: 768px) { .container { max-width: 1024px; } }
+
+body {
+    margin-top: 1em;
+    margin-left: 10px;
+    margin-right: 20px;
+    margin-bottom: 3em;
+    overflow-x: hidden;
+    font-size: 12pt;
+}
+
+table th, table td {
+    padding-left: 3px;
+    border: 1px solid gray;
+    width: 185px;
+}
+
+h1 {
+    text-align: center;
+}
+
+pre {
+    -moz-tab-size: 4; /* Code for Firefox */
+    -o-tab-size: 4; /* Code for Opera 10.6-12.1 */
+    tab-size: 4;
+    margin-top: 5px;
+}
+
+.btn {
+    margin-top: 4px;
+    margin-bottom: 10px;
+}
+
+#navigation li {
+    display: inline;
+    margin: 2em;
+}
+
+.nav-tabs li {
+    cursor: pointer;
+}
+
+.navbar li iframe {
+    padding-top: 15px;
+    width: 86px;
+    height: 35px;
+    border:none;
+}

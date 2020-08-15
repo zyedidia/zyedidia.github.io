@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Weaver</title>
+<script>
+!function(){var q=null;window.PR_SHOULD_USE_CONTINUATION=!0;
+(function(){function R(a){function d(e){var b=e.charCodeAt(0);if(b!==92)return b;var a=e.charAt(1);return(b=r[a])?b:"0"<=a&&a<="7"?parseInt(e.substring(1),8):a==="u"||a==="x"?parseInt(e.substring(2),16):e.charCodeAt(1)}function g(e){if(e<32)return(e<16?"\\x0":"\\x")+e.toString(16);e=String.fromCharCode(e);return e==="\\"||e==="-"||e==="]"||e==="^"?"\\"+e:e}function b(e){var b=e.substring(1,e.length-1).match(/\\u[\dA-Fa-f]{4}|\\x[\dA-Fa-f]{2}|\\[0-3][0-7]{0,2}|\\[0-7]{1,2}|\\[\S\s]|[^\\]/g),e=[],a=
+b[0]==="^",c=["["];a&&c.push("^");for(var a=a?1:0,f=b.length;a<f;++a){var h=b[a];if(/\\[bdsw]/i.test(h))c.push(h);else{var h=d(h),l;a+2<f&&"-"===b[a+1]?(l=d(b[a+2]),a+=2):l=h;e.push([h,l]);l<65||h>122||(l<65||h>90||e.push([Math.max(65,h)|32,Math.min(l,90)|32]),l<97||h>122||e.push([Math.max(97,h)&-33,Math.min(l,122)&-33]))}}e.sort(function(e,a){return e[0]-a[0]||a[1]-e[1]});b=[];f=[];for(a=0;a<e.length;++a)h=e[a],h[0]<=f[1]+1?f[1]=Math.max(f[1],h[1]):b.push(f=h);for(a=0;a<b.length;++a)h=b[a],c.push(g(h[0])),
+h[1]>h[0]&&(h[1]+1>h[0]&&c.push("-"),c.push(g(h[1])));c.push("]");return c.join("")}function s(e){for(var a=e.source.match(/\[(?:[^\\\] ]|\\[\S\s])*]|\\u[\dA-Fa-f]{4}|\\x[\dA-Fa-f]{2}|\\\d+|\\[^\dux]|\(\?[!:=]|[()^]|[^()[\\^]+/g),c=a.length,d=[],f=0,h=0;f<c;++f){var l=a[f];l==="("?++h:"\\"===l.charAt(0)&&(l=+l.substring(1))&&(l<=h?d[l]=-1:a[f]=g(l))}for(f=1;f<d.length;++f)-1===d[f]&&(d[f]=++x);for(h=f=0;f<c;++f)l=a[f],l==="("?(++h,d[h]||(a[f]="(?:")):"\\"===l.charAt(0)&&(l=+l.substring(1))&&l<=h&&
+(a[f]="\\"+d[l]);for(f=0;f<c;++f)"^"===a[f]&&"^"!==a[f+1]&&(a[f]="");if(e.ignoreCase&&m)for(f=0;f<c;++f)l=a[f],e=l.charAt(0),l.length>=2&&e==="["?a[f]=b(l):e!=="\\"&&(a[f]=l.replace(/[A-Za-z]/g,function(a){a=a.charCodeAt(0);return"["+String.fromCharCode(a&-33,a|32)+"]"}));return a.join("")}for(var x=0,m=!1,j=!1,k=0,c=a.length;k<c;++k){var i=a[k];if(i.ignoreCase)j=!0;else if(/[a-z]/i.test(i.source.replace(/\\u[\da-f]{4}|\\x[\da-f]{2}|\\[^UXux]/gi,""))){m=!0;j=!1;break}}for(var r={b:8,t:9,n:10,v:11,
+f:12,r:13},n=[],k=0,c=a.length;k<c;++k){i=a[k];if(i.global||i.multiline)throw Error(""+i);n.push("(?:"+s(i)+")")}return RegExp(n.join("|"),j?"gi":"g")}function S(a,d){function g(a){var c=a.nodeType;if(c==1){if(!b.test(a.className)){for(c=a.firstChild;c;c=c.nextSibling)g(c);c=a.nodeName.toLowerCase();if("br"===c||"li"===c)s[j]="\n",m[j<<1]=x++,m[j++<<1|1]=a}}else if(c==3||c==4)c=a.nodeValue,c.length&&(c=d?c.replace(/\r\n?/g,"\n"):c.replace(/[\t\n\r ]+/g," "),s[j]=c,m[j<<1]=x,x+=c.length,m[j++<<1|1]=
+a)}var b=/(?:^|\s)nocode(?:\s|$)/,s=[],x=0,m=[],j=0;g(a);return{a:s.join("").replace(/\n$/,""),d:m}}function H(a,d,g,b){d&&(a={a:d,e:a},g(a),b.push.apply(b,a.g))}function T(a){for(var d=void 0,g=a.firstChild;g;g=g.nextSibling)var b=g.nodeType,d=b===1?d?a:g:b===3?U.test(g.nodeValue)?a:d:d;return d===a?void 0:d}function D(a,d){function g(a){for(var j=a.e,k=[j,"pln"],c=0,i=a.a.match(s)||[],r={},n=0,e=i.length;n<e;++n){var z=i[n],w=r[z],t=void 0,f;if(typeof w==="string")f=!1;else{var h=b[z.charAt(0)];
+if(h)t=z.match(h[1]),w=h[0];else{for(f=0;f<x;++f)if(h=d[f],t=z.match(h[1])){w=h[0];break}t||(w="pln")}if((f=w.length>=5&&"lang-"===w.substring(0,5))&&!(t&&typeof t[1]==="string"))f=!1,w="src";f||(r[z]=w)}h=c;c+=z.length;if(f){f=t[1];var l=z.indexOf(f),B=l+f.length;t[2]&&(B=z.length-t[2].length,l=B-f.length);w=w.substring(5);H(j+h,z.substring(0,l),g,k);H(j+h+l,f,I(w,f),k);H(j+h+B,z.substring(B),g,k)}else k.push(j+h,w)}a.g=k}var b={},s;(function(){for(var g=a.concat(d),j=[],k={},c=0,i=g.length;c<i;++c){var r=
+g[c],n=r[3];if(n)for(var e=n.length;--e>=0;)b[n.charAt(e)]=r;r=r[1];n=""+r;k.hasOwnProperty(n)||(j.push(r),k[n]=q)}j.push(/[\S\s]/);s=R(j)})();var x=d.length;return g}function v(a){var d=[],g=[];a.tripleQuotedStrings?d.push(["str",/^(?:'''(?:[^'\\]|\\[\S\s]|''?(?=[^']))*(?:'''|$)|"""(?:[^"\\]|\\[\S\s]|""?(?=[^"]))*(?:"""|$)|'(?:[^'\\]|\\[\S\s])*(?:'|$)|"(?:[^"\\]|\\[\S\s])*(?:"|$))/,q,"'\""]):a.multiLineStrings?d.push(["str",/^(?:'(?:[^'\\]|\\[\S\s])*(?:'|$)|"(?:[^"\\]|\\[\S\s])*(?:"|$)|`(?:[^\\`]|\\[\S\s])*(?:`|$))/,
+q,"'\"`"]):d.push(["str",/^(?:'(?:[^\n\r'\\]|\\.)*(?:'|$)|"(?:[^\n\r"\\]|\\.)*(?:"|$))/,q,"\"'"]);a.verbatimStrings&&g.push(["str",/^@"(?:[^"]|"")*(?:"|$)/,q]);var b=a.hashComments;b&&(a.cStyleComments?(b>1?d.push(["com",/^#(?:##(?:[^#]|#(?!##))*(?:###|$)|.*)/,q,"#"]):d.push(["com",/^#(?:(?:define|e(?:l|nd)if|else|error|ifn?def|include|line|pragma|undef|warning)\b|[^\n\r]*)/,q,"#"]),g.push(["str",/^<(?:(?:(?:\.\.\/)*|\/?)(?:[\w-]+(?:\/[\w-]+)+)?[\w-]+\.h(?:h|pp|\+\+)?|[a-z]\w*)>/,q])):d.push(["com",
+/^#[^\n\r]*/,q,"#"]));a.cStyleComments&&(g.push(["com",/^\/\/[^\n\r]*/,q]),g.push(["com",/^\/\*[\S\s]*?(?:\*\/|$)/,q]));if(b=a.regexLiterals){var s=(b=b>1?"":"\n\r")?".":"[\\S\\s]";g.push(["lang-regex",RegExp("^(?:^^\\.?|[+-]|[!=]=?=?|\\#|%=?|&&?=?|\\(|\\*=?|[+\\-]=|->|\\/=?|::?|<<?=?|>>?>?=?|,|;|\\?|@|\\[|~|{|\\^\\^?=?|\\|\\|?=?|break|case|continue|delete|do|else|finally|instanceof|return|throw|try|typeof)\\s*("+("/(?=[^/*"+b+"])(?:[^/\\x5B\\x5C"+b+"]|\\x5C"+s+"|\\x5B(?:[^\\x5C\\x5D"+b+"]|\\x5C"+
+s+")*(?:\\x5D|$))+/")+")")])}(b=a.types)&&g.push(["typ",b]);b=(""+a.keywords).replace(/^ | $/g,"");b.length&&g.push(["kwd",RegExp("^(?:"+b.replace(/[\s,]+/g,"|")+")\\b"),q]);d.push(["pln",/^\s+/,q," \r\n\t\u00a0"]);b="^.[^\\s\\w.$@'\"`/\\\\]*";a.regexLiterals&&(b+="(?!s*/)");g.push(["lit",/^@[$_a-z][\w$@]*/i,q],["typ",/^(?:[@_]?[A-Z]+[a-z][\w$@]*|\w+_t\b)/,q],["pln",/^[$_a-z][\w$@]*/i,q],["lit",/^(?:0x[\da-f]+|(?:\d(?:_\d+)*\d*(?:\.\d*)?|\.\d\+)(?:e[+-]?\d+)?)[a-z]*/i,q,"0123456789"],["pln",/^\\[\S\s]?/,
+q],["pun",RegExp(b),q]);return D(d,g)}function J(a,d,g){function b(a){var c=a.nodeType;if(c==1&&!x.test(a.className))if("br"===a.nodeName)s(a),a.parentNode&&a.parentNode.removeChild(a);else for(a=a.firstChild;a;a=a.nextSibling)b(a);else if((c==3||c==4)&&g){var d=a.nodeValue,i=d.match(m);if(i)c=d.substring(0,i.index),a.nodeValue=c,(d=d.substring(i.index+i[0].length))&&a.parentNode.insertBefore(j.createTextNode(d),a.nextSibling),s(a),c||a.parentNode.removeChild(a)}}function s(a){function b(a,c){var d=
+c?a.cloneNode(!1):a,e=a.parentNode;if(e){var e=b(e,1),g=a.nextSibling;e.appendChild(d);for(var i=g;i;i=g)g=i.nextSibling,e.appendChild(i)}return d}for(;!a.nextSibling;)if(a=a.parentNode,!a)return;for(var a=b(a.nextSibling,0),d;(d=a.parentNode)&&d.nodeType===1;)a=d;c.push(a)}for(var x=/(?:^|\s)nocode(?:\s|$)/,m=/\r\n?|\n/,j=a.ownerDocument,k=j.createElement("li");a.firstChild;)k.appendChild(a.firstChild);for(var c=[k],i=0;i<c.length;++i)b(c[i]);d===(d|0)&&c[0].setAttribute("value",d);var r=j.createElement("ol");
+r.className="linenums";for(var d=Math.max(0,d-1|0)||0,i=0,n=c.length;i<n;++i)k=c[i],k.className="L"+(i+d)%10,k.firstChild||k.appendChild(j.createTextNode("\u00a0")),r.appendChild(k);a.appendChild(r)}function p(a,d){for(var g=d.length;--g>=0;){var b=d[g];F.hasOwnProperty(b)?E.console&&console.warn("cannot override language handler %s",b):F[b]=a}}function I(a,d){if(!a||!F.hasOwnProperty(a))a=/^\s*</.test(d)?"default-markup":"default-code";return F[a]}function K(a){var d=a.h;try{var g=S(a.c,a.i),b=g.a;
+a.a=b;a.d=g.d;a.e=0;I(d,b)(a);var s=/\bMSIE\s(\d+)/.exec(navigator.userAgent),s=s&&+s[1]<=8,d=/\n/g,x=a.a,m=x.length,g=0,j=a.d,k=j.length,b=0,c=a.g,i=c.length,r=0;c[i]=m;var n,e;for(e=n=0;e<i;)c[e]!==c[e+2]?(c[n++]=c[e++],c[n++]=c[e++]):e+=2;i=n;for(e=n=0;e<i;){for(var p=c[e],w=c[e+1],t=e+2;t+2<=i&&c[t+1]===w;)t+=2;c[n++]=p;c[n++]=w;e=t}c.length=n;var f=a.c,h;if(f)h=f.style.display,f.style.display="none";try{for(;b<k;){var l=j[b+2]||m,B=c[r+2]||m,t=Math.min(l,B),A=j[b+1],G;if(A.nodeType!==1&&(G=x.substring(g,
+t))){s&&(G=G.replace(d,"\r"));A.nodeValue=G;var L=A.ownerDocument,o=L.createElement("span");o.className=c[r+1];var v=A.parentNode;v.replaceChild(o,A);o.appendChild(A);g<l&&(j[b+1]=A=L.createTextNode(x.substring(t,l)),v.insertBefore(A,o.nextSibling))}g=t;g>=l&&(b+=2);g>=B&&(r+=2)}}finally{if(f)f.style.display=h}}catch(u){E.console&&console.log(u&&u.stack||u)}}var E=window,y=["break,continue,do,else,for,if,return,while"],C=[[y,"auto,case,char,const,default,double,enum,extern,float,goto,inline,int,long,register,short,signed,sizeof,static,struct,switch,typedef,union,unsigned,void,volatile"],
+"catch,class,delete,false,import,new,operator,private,protected,public,this,throw,true,try,typeof"],M=[C,"alignof,align_union,asm,axiom,bool,concept,concept_map,const_cast,constexpr,decltype,delegate,dynamic_cast,explicit,export,friend,generic,late_check,mutable,namespace,nullptr,property,reinterpret_cast,static_assert,static_cast,template,typeid,typename,using,virtual,where"],V=[C,"abstract,assert,boolean,byte,extends,final,finally,implements,import,instanceof,interface,null,native,package,strictfp,super,synchronized,throws,transient"],
+N=[C,"abstract,as,base,bool,by,byte,checked,decimal,delegate,descending,dynamic,event,finally,fixed,foreach,from,group,implicit,in,interface,internal,into,is,let,lock,null,object,out,override,orderby,params,partial,readonly,ref,sbyte,sealed,stackalloc,string,select,uint,ulong,unchecked,unsafe,ushort,var,virtual,where"],C=[C,"debugger,eval,export,function,get,null,set,undefined,var,with,Infinity,NaN"],O=[y,"and,as,assert,class,def,del,elif,except,exec,finally,from,global,import,in,is,lambda,nonlocal,not,or,pass,print,raise,try,with,yield,False,True,None"],
+P=[y,"alias,and,begin,case,class,def,defined,elsif,end,ensure,false,in,module,next,nil,not,or,redo,rescue,retry,self,super,then,true,undef,unless,until,when,yield,BEGIN,END"],W=[y,"as,assert,const,copy,drop,enum,extern,fail,false,fn,impl,let,log,loop,match,mod,move,mut,priv,pub,pure,ref,self,static,struct,true,trait,type,unsafe,use"],y=[y,"case,done,elif,esac,eval,fi,function,in,local,set,then,until"],Q=/^(DIR|FILE|vector|(de|priority_)?queue|list|stack|(const_)?iterator|(multi)?(set|map)|bitset|u?(int|float)\d*)\b/,
+U=/\S/,X=v({keywords:[M,N,C,"caller,delete,die,do,dump,elsif,eval,exit,foreach,for,goto,if,import,last,local,my,next,no,our,print,package,redo,require,sub,undef,unless,until,use,wantarray,while,BEGIN,END",O,P,y],hashComments:!0,cStyleComments:!0,multiLineStrings:!0,regexLiterals:!0}),F={};p(X,["default-code"]);p(D([],[["pln",/^[^<?]+/],["dec",/^<!\w[^>]*(?:>|$)/],["com",/^<\!--[\S\s]*?(?:--\>|$)/],["lang-",/^<\?([\S\s]+?)(?:\?>|$)/],["lang-",/^<%([\S\s]+?)(?:%>|$)/],["pun",/^(?:<[%?]|[%?]>)/],["lang-",
+/^<xmp\b[^>]*>([\S\s]+?)<\/xmp\b[^>]*>/i],["lang-js",/^<script\b[^>]*>([\S\s]*?)(<\/script\b[^>]*>)/i],["lang-css",/^<style\b[^>]*>([\S\s]*?)(<\/style\b[^>]*>)/i],["lang-in.tag",/^(<\/?[a-z][^<>]*>)/i] ]),["default-markup","htm","html","mxml","xhtml","xml","xsl"]);p(D([["pln",/^\s+/,q," \t\r\n"],["atv",/^(?:"[^"]*"?|'[^']*'?)/,q,"\"'"] ],[["tag",/^^<\/?[a-z](?:[\w-.:]*\w)?|\/?>$/i],["atn",/^(?!style[\s=]|on)[a-z](?:[\w:-]*\w)?/i],["lang-uq.val",/^=\s*([^\s"'>]*(?:[^\s"'/>]|\/(?=\s)))/],["pun",/^[/<->]+/],
+["lang-js",/^on\w+\s*=\s*"([^"]+)"/i],["lang-js",/^on\w+\s*=\s*'([^']+)'/i],["lang-js",/^on\w+\s*=\s*([^\s"'>]+)/i],["lang-css",/^style\s*=\s*"([^"]+)"/i],["lang-css",/^style\s*=\s*'([^']+)'/i],["lang-css",/^style\s*=\s*([^\s"'>]+)/i] ]),["in.tag"]);p(D([],[["atv",/^[\S\s]+/] ]),["uq.val"]);p(v({keywords:M,hashComments:!0,cStyleComments:!0,types:Q}),["c","cc","cpp","cxx","cyc","m"]);p(v({keywords:"null,true,false"}),["json"]);p(v({keywords:N,hashComments:!0,cStyleComments:!0,verbatimStrings:!0,types:Q}),
+["cs"]);p(v({keywords:V,cStyleComments:!0}),["java"]);p(v({keywords:y,hashComments:!0,multiLineStrings:!0}),["bash","bsh","csh","sh"]);p(v({keywords:O,hashComments:!0,multiLineStrings:!0,tripleQuotedStrings:!0}),["cv","py","python"]);p(v({keywords:"caller,delete,die,do,dump,elsif,eval,exit,foreach,for,goto,if,import,last,local,my,next,no,our,print,package,redo,require,sub,undef,unless,until,use,wantarray,while,BEGIN,END",hashComments:!0,multiLineStrings:!0,regexLiterals:2}),["perl","pl","pm"]);p(v({keywords:P,
+hashComments:!0,multiLineStrings:!0,regexLiterals:!0}),["rb","ruby"]);p(v({keywords:C,cStyleComments:!0,regexLiterals:!0}),["javascript","js"]);p(v({keywords:"all,and,by,catch,class,else,extends,false,finally,for,if,in,is,isnt,loop,new,no,not,null,of,off,on,or,return,super,then,throw,true,try,unless,until,when,while,yes",hashComments:3,cStyleComments:!0,multilineStrings:!0,tripleQuotedStrings:!0,regexLiterals:!0}),["coffee"]);p(v({keywords:W,cStyleComments:!0,multilineStrings:!0}),["rc","rs","rust"]);
+p(D([],[["str",/^[\S\s]+/] ]),["regex"]);var Y=E.PR={createSimpleLexer:D,registerLangHandler:p,sourceDecorator:v,PR_ATTRIB_NAME:"atn",PR_ATTRIB_VALUE:"atv",PR_COMMENT:"com",PR_DECLARATION:"dec",PR_KEYWORD:"kwd",PR_LITERAL:"lit",PR_NOCODE:"nocode",PR_PLAIN:"pln",PR_PUNCTUATION:"pun",PR_SOURCE:"src",PR_STRING:"str",PR_TAG:"tag",PR_TYPE:"typ",prettyPrintOne:E.prettyPrintOne=function(a,d,g){var b=document.createElement("div");b.innerHTML="<pre>"+a+"</pre>";b=b.firstChild;g&&J(b,g,!0);K({h:d,j:g,c:b,i:1});
+return b.innerHTML},prettyPrint:E.prettyPrint=function(a,d){function g(){for(var b=E.PR_SHOULD_USE_CONTINUATION?c.now()+250:Infinity;i<p.length&&c.now()<b;i++){for(var d=p[i],j=h,k=d;k=k.previousSibling;){var m=k.nodeType,o=(m===7||m===8)&&k.nodeValue;if(o?!/^\??prettify\b/.test(o):m!==3||/\S/.test(k.nodeValue))break;if(o){j={};o.replace(/\b(\w+)=([\w%+\-.:]+)/g,function(a,b,c){j[b]=c});break}}k=d.className;if((j!==h||e.test(k))&&!v.test(k)){m=!1;for(o=d.parentNode;o;o=o.parentNode)if(f.test(o.tagName)&&
+o.className&&e.test(o.className)){m=!0;break}if(!m){d.className+=" prettyprinted";m=j.lang;if(!m){var m=k.match(n),y;if(!m&&(y=T(d))&&t.test(y.tagName))m=y.className.match(n);m&&(m=m[1])}if(w.test(d.tagName))o=1;else var o=d.currentStyle,u=s.defaultView,o=(o=o?o.whiteSpace:u&&u.getComputedStyle?u.getComputedStyle(d,q).getPropertyValue("white-space"):0)&&"pre"===o.substring(0,3);u=j.linenums;if(!(u=u==="true"||+u))u=(u=k.match(/\blinenums\b(?::(\d+))?/))?u[1]&&u[1].length?+u[1]:!0:!1;u&&J(d,u,o);r=
+{h:m,c:d,j:u,i:o};K(r)}}}i<p.length?setTimeout(g,250):"function"===typeof a&&a()}for(var b=d||document.body,s=b.ownerDocument||document,b=[b.getElementsByTagName("pre"),b.getElementsByTagName("code"),b.getElementsByTagName("xmp")],p=[],m=0;m<b.length;++m)for(var j=0,k=b[m].length;j<k;++j)p.push(b[m][j]);var b=q,c=Date;c.now||(c={now:function(){return+new Date}});var i=0,r,n=/\blang(?:uage)?-([\w.]+)(?!\S)/,e=/\bprettyprint\b/,v=/\bprettyprinted\b/,w=/pre|xmp/i,t=/^code$/i,f=/^(?:pre|code|xmp)$/i,
+h={};g()}};typeof define==="function"&&define.amd&&define("google-code-prettify",[],function(){return Y})})();}()
+</script>
+<style>
+.pln{color:#1b181b}.str{color:#918b3b}.kwd{color:#7b59c0}.com{color:#9e8f9e}.typ{color:#516aec}.lit{color:#a65926}.clo,.opn,.pun{color:#1b181b}.tag{color:#ca402b}.atn{color:#a65926}.atv{color:#159393}.dec{color:#a65926}.var{color:#ca402b}.fun{color:#516aec}pre.prettyprint{background:#f7f3f7;color:#ab9bab;font-family:Menlo,Consolas,"Bitstream Vera Sans Mono","DejaVu Sans Mono",Monaco,monospace;font-size:12px;line-height:1.5;border:1px solid #d8cad8;padding:10px}ol.linenums{margin-top:0;margin-bottom:0}
+body{min-width:200px;max-width:850px;margin:0 auto;padding:30px;}.chapter-nav{font-size: 10pt;}a:link,a:visited{color:#00f}.codeblock_name,code,pre.prettyprint{font-family:Monaco,"Lucida Console",monospace}body{font-size:14pt}.codeblock_name,.math,.seealso,code{font-size:10pt}.codeblock{page-break-inside:avoid;padding-bottom:15px}.math{text-indent:0}pre.prettyprint{font-size:10pt;padding:10px;border-radius:10px;border:none;white-space:pre-wrap}.codeblock_name{margin-top:1.25em;display:block}a:link{text-decoration:none}a:link:not(.lit):hover{color:#00f;text-decoration:underline}a:link:active{color:red}h4{padding-right:1.25em}h4.noheading{margin-bottom:0}h1{text-align:center}code{padding:2px}pre{-moz-tab-size:4;-o-tab-size:4;tab-size:4}p:not(.notp){margin:0;text-indent:2em}.two-col{list-style-type:none}.two-col li:before{content:'-';padding:5px;margin-right:5px;color:orange;background-color:#fff;display:inline-block}@media print{body{font-size:10pt}pre.prettyprint{font-size:8pt}.seealso{font-size:9pt}.codeblock_name,.math,code{font-size:8pt}.math{text-indent:0}}
+</style>
+</head>
+<body onload="prettyPrint()">
+<section>
+<h1>Weaver</h1>
+<a name="1:1"><div class="section"><h4>1. Introduction</h4></a>
+<p>Here is an overview of the weave program. This file turns a literate source
+file into one or more html files.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{<strong>weaver.d</strong> <a href="weaver.html#1:1">1</a>}</span>
+<pre class="prettyprint lang-d">
+<span class="nocode pln">{Imports, <a href="weaver.html#1:16">16</a>}</span>
+
+void weave(Program p) {
+<span class="nocode pln">    {Parse use locations, <a href="weaver.html#1:2">2</a>}</span>
+<span class="nocode pln">    {Run weaveChapter, <a href="weaver.html#1:2">2</a>}</span>
+    if (isBook &amp;&amp; !noOutput) {
+<span class="nocode pln">{Create the table of contents, <a href="weaver.html#1:3">3</a>}</span>
+    }
+}
+
+<span class="nocode pln">{WeaveChapter, <a href="weaver.html#1:5">5</a>}</span>
+<span class="nocode pln">{LinkLocations function, <a href="weaver.html#1:12">12</a>}</span>
+</pre>
+
+
+
+</div>
+</div>
+<a name="1:2"><div class="section"><h4>2. Parsing Codeblocks</h4></a>
+<p>Now we parse the codeblocks across all chapters in the program. We
+have four arrays:
+</p>
+<ul>
+<li>defLocations: stores the section in which a codeblock is defined.
+</li>
+<li>redefLocations: stores the sections in which a codeblock is redefined.
+</li>
+<li>addLocations: stores the sections in which a codeblock is added to.
+</li>
+<li>useLocations: stores the sections in which a codeblock is used;
+</li>
+</ul>
+
+<div class="codeblock">
+<span class="codeblock_name">{Parse use locations <a href="weaver.html#1:2">2</a>}</span>
+<pre class="prettyprint lang-d">
+string[string] defLocations;
+string[][string] redefLocations;
+string[][string] addLocations;
+string[][string] useLocations;
+
+foreach (chapter; p.chapters) {
+    foreach (s; chapter.sections) {
+        foreach (block; s.blocks) {
+            if (block.isCodeblock) {
+                if (block.modifiers.canFind(Modifier.noWeave)) {
+                    defLocations[block.name] = "noWeave";
+                    continue;
+                }
+
+<span class="nocode pln">                {Check if it's a root block, <a href="weaver.html#1:4">4</a>}</span>
+
+                if (block.modifiers.canFind(Modifier.additive)) {
+                    if (block.name !in addLocations || !addLocations[block.name].canFind(to!string(s.num)))
+                        addLocations[block.name] ~= chapter.num() ~ ":" ~ to!string(s.num);
+                } else if (block.modifiers.canFind(Modifier.redef)) {
+                    if (block.name !in redefLocations || !redefLocations[block.name].canFind(to!string(s.num)))
+                        redefLocations[block.name] ~= chapter.num() ~ ":" ~ to!string(s.num);
+                } else {
+                    defLocations[block.name] = chapter.num() ~ ":" ~ to!string(s.num);
+                }
+
+                foreach (lineObj; block.lines) {
+                    string line = strip(lineObj.text);
+                    if (line.startsWith("@{") &amp;&amp; line.endsWith("}")) {
+                        useLocations[line[2..$ - 1]] ~= chapter.num() ~ ":" ~ to!string(s.num);
+                    }
+                }
+            }
+        }
+    }
+}
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:1">1</a></p>
+</div>
+<p>Here we simply loop through all the chapters in the program and get the html for them.
+If <code>noOutput</code> is false, we generate html files in the <code>outDir</code>.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{Run weaveChapter <a href="weaver.html#1:2">2</a>}</span>
+<pre class="prettyprint lang-d">
+foreach (c; p.chapters) {
+    string output = weaveChapter(c, p, defLocations, redefLocations,
+                                 addLocations, useLocations);
+    if (!noOutput) {
+        string dir = outDir;
+        if (isBook) {
+            dir = outDir ~ "/_book";
+            if (!dir.exists()) {
+                mkdir(dir);
+            }
+        }
+        File f = File(dir ~ "/" ~ stripExtension(baseName(c.file)) ~ ".html", "w");
+        f.write(output);
+        f.close();
+    }
+}
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:1">1</a></p>
+</div>
+</div>
+<a name="1:3"><div class="section"><h4>3. Table of contents</h4></a>
+<p>If the program being compiled is a book, we should also write a table of contents file.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{Create the table of contents <a href="weaver.html#1:3">3</a>}</span>
+<pre class="prettyprint lang-d">
+string dir = outDir ~ "/_book";
+File f = File(dir ~ "/" ~ p.title ~ "_contents.html", "w");
+f.writeln(
+q"DELIMITER
+&lt;!DOCTYPE html&gt;
+&lt;html&gt;
+&lt;head&gt;
+&lt;style&gt;
+ul#contents {list-style-type: none;}a{color:#337ABF;}body{min-width:200px;max-width:850px;margin:0 auto;padding:30px;}.chapter-nav{font-size: 10pt;}.codeblock_name,code,pre.prettyprint{font-family:Monaco,"Lucida Console",monospace}body{font-size:14pt}.codeblock_name,.math,.seealso,code{font-size:10pt}.codeblock{page-break-inside:avoid;padding-bottom:15px}.math{text-indent:0}pre.prettyprint{font-size:10pt;padding:10px;border-radius:10px;border:none;white-space:pre-wrap}.codeblock_name{margin-top:1.25em;display:block}a:link{text-decoration:none}a:link:not(.lit):hover{text-decoration:underline}a:link:active{color:red}h4{padding-right:1.25em}h4.noheading{margin-bottom:0}h1{text-align:center}code{padding:2px}pre{-moz-tab-size:4;-o-tab-size:4;tab-size:4}.two-col{list-style-type:none}.two-col li:before{content:'-';padding:5px;margin-right:5px;color:orange;background-color:#fff;display:inline-block}@media print{body{font-size:10pt}pre.prettyprint{font-size:8pt}.seealso{font-size:9pt}.codeblock_name,.math,code{font-size:8pt}.math{text-indent:0}}
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+&lt;div class="container"&gt;
+DELIMITER"
+);
+
+f.writeln("&lt;h1&gt;" ~ p.title ~ "&lt;/h1&gt;");
+
+f.writeln(filterMarkdown(p.text));
+
+f.writeln("&lt;ul id=\"contents\"&gt;");
+foreach (c; p.chapters) {
+    f.writeln("&lt;li&gt;" ~ c.num() ~ ". &lt;a href=\"" ~ stripExtension(baseName(c.file)) ~ ".html\"&gt;" ~ c.title ~ "&lt;/a&gt;&lt;/li&gt;");
+}
+
+f.writeln("
+&lt;/ul&gt;
+&lt;/div&gt;
+&lt;/body&gt;
+");
+
+f.close();
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:1">1</a></p>
+</div>
+</div>
+<a name="1:4"><div class="section"><h4>4. Root block check</h4></a>
+<p>We check if the block is a root code block. We check this using
+a regex that basically checks if it the name has an extension. Additionally,
+users can put the block name in quotes to force it to be a root block.
+</p>
+<p>If the block name is in quotes, we have to make sure to remove those once
+we're done.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{Check if it's a root block <a href="weaver.html#1:4">4</a>}</span>
+<pre class="prettyprint lang-d">
+auto fileMatch = matchAll(block.name, regex(".*\\.\\w+"));
+auto quoteMatch = matchAll(block.name, regex("^\".*\"$"));
+if (fileMatch || quoteMatch) {
+    block.isRootBlock = true;
+    if (quoteMatch) {
+        block.name = block.name[1..$-1];
+    }
+}
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:2">2</a></p>
+</div>
+</div>
+<a name="1:5"><div class="section"><h4>5. WeaveChapter</h4></a>
+<p>This function weaves a single chapter.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{WeaveChapter <a href="weaver.html#1:5">5</a>}</span>
+<pre class="prettyprint lang-d">
+string weaveChapter(Chapter c, Program p, string[string] defLocations,
+                    string[][string] redefLocations, string[][string] addLocations,
+                    string[][string] useLocations) {
+<span class="nocode pln">{prettify}</span>
+<span class="nocode pln">{css}</span>
+<span class="nocode pln">{katex}</span>
+
+    string output = "";
+
+<span class="nocode pln">    {Write the head of the HTML, <a href="weaver.html#1:6">6</a>}</span>
+<span class="nocode pln">    {Write the body, <a href="weaver.html#1:7">7</a>}</span>
+
+    if (use_katex) {
+<span class="nocode pln">{Write the katex source, <a href="weaver.html#1:16">16</a>}</span>
+    }
+
+    if (isBook) {
+        output ~= "&lt;br&gt;";
+        int index = cast(int) p.chapters.countUntil(c);
+        if (index - 1 &gt;= 0) {
+            Chapter lastChapter = p.chapters[p.chapters.countUntil(c)-1];
+            output ~= "&lt;a style=\"float:left;\" class=\"chapter-nav\" href=\"" ~ stripExtension(baseName(lastChapter.file)) ~ ".html\"&gt;Previous Chapter&lt;/a&gt;";
+        }
+        if (index + 1 &lt; p.chapters.length) {
+            Chapter nextChapter = p.chapters[p.chapters.countUntil(c)+1];
+            output ~= "&lt;a style=\"float:right;\" class=\"chapter-nav\" href=\"" ~ stripExtension(baseName(nextChapter.file)) ~ ".html\"&gt;Next Chapter&lt;/a&gt;";
+        }
+    }
+
+    output ~= "&lt;/body&gt;\n";
+
+    return output;
+}
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:1">1</a></p>
+</div>
+</div>
+<a name="1:6"><div class="section"><h4>6. Head of the Document</h4></a>
+<p>This writes out the start of the document. Mainly the scripts (prettify.js) 
+and the css (prettiy css, default css, and colorscheme css). It also adds
+the title of the document.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{Write the head of the HTML <a href="weaver.html#1:6">6</a>}</span>
+<pre class="prettyprint lang-d">
+string prettifyExtension;
+foreach (cmd; p.commands) {
+    if (cmd.name == "@overwrite_css") {
+        defaultCSS = readall(File(cmd.args));
+    } else if (cmd.name == "@add_css") {
+        defaultCSS ~= readall(File(cmd.args));
+    } else if (cmd.name == "@colorscheme") {
+        colorschemeCSS = readall(File(cmd.args));
+    }
+
+    if (cmd.name == "@code_type") {
+        if (cmd.args.length &gt; 1) {
+            string ext = cmd.args.split()[1][1..$];
+            if (ext in extensions) {
+                prettifyExtension = "&lt;script&gt;\n" ~ extensions[ext] ~ "&lt;/script&gt;\n";
+            }
+        }
+    }
+}
+foreach (cmd; c.commands) {
+    if (cmd.name == "@overwrite_css") {
+        defaultCSS = readall(File(cmd.args));
+    } else if (cmd.name == "@add_css") {
+        defaultCSS ~= readall(File(cmd.args));
+    } else if (cmd.name == "@colorscheme") {
+        colorschemeCSS = readall(File(cmd.args));
+    }
+
+    if (cmd.name == "@code_type") {
+        if (cmd.args.length &gt; 1) {
+            string ext = cmd.args.split()[1][1..$];
+            if (ext in extensions) {
+                prettifyExtension = "&lt;script&gt;\n" ~ extensions[ext] ~ "&lt;/script&gt;\n";
+            }
+        }
+    }
+}
+
+string css = colorschemeCSS ~ defaultCSS;
+string scripts = "&lt;script&gt;\n" ~ prettify ~ "&lt;/script&gt;\n";
+scripts ~= prettifyExtension;
+
+bool use_katex = false;
+
+output ~= "&lt;!DOCTYPE html&gt;\n"
+             "&lt;html&gt;\n"
+             "&lt;head&gt;\n"
+             "&lt;meta charset=\"utf-8\"&gt;\n"
+             "&lt;title&gt;" ~ c.title ~ "&lt;/title&gt;\n" ~
+             scripts ~
+             "&lt;style&gt;\n" ~
+             css ~
+             "&lt;/style&gt;\n"
+             "&lt;/head&gt;\n";
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:5">5</a></p>
+</div>
+</div>
+<a name="1:7"><div class="section"><h4>7. Parse the Chapter</h4></a>
+<p>Now we write the body -- this is the meat of the weaver. First we write
+a couple things at the beginning: making sure the <code>prettyprint</code> function is
+called when the page loads, and writing out the title as an <code>h1</code>.
+</p>
+<p>Then we loop through each section in the chapter. At the beginning of each section,
+we write the title, and an empty <code>a</code> link so that the section title can be linked to.
+We also have to determine if the section title should be a <code>noheading</code> class. If the
+section title is empty, then the class should be <code>noheading</code> which means that the prose
+will be moved up a bit towards it -- otherwise it looks like there is too much empty space
+between the title and the prose.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{Write the body <a href="weaver.html#1:7">7</a>}</span>
+<pre class="prettyprint lang-d">
+output ~= "&lt;body onload=\"prettyPrint()\"&gt;\n"
+          "&lt;section&gt;\n"
+          "&lt;h1&gt;" ~ c.title ~ "&lt;/h1&gt;\n";
+
+foreach (s; c.sections) {
+    string noheading = s.title == "" ? " class=\"noheading\"" : "";
+    output ~= "&lt;a name=\"" ~ c.num() ~ ":" ~ to!string(s.num) ~ "\"&gt;&lt;div class=\"section\"&gt;&lt;h4" ~
+              noheading ~ "&gt;" ~ to!string(s.num) ~ ". " ~ s.title ~ "&lt;/h4&gt;&lt;/a&gt;\n";
+
+    foreach (block; s.blocks) {
+        if (!block.modifiers.canFind(Modifier.noWeave)) {
+            if (!block.isCodeblock) {
+<span class="nocode pln">                {Weave a prose block, <a href="weaver.html#1:8">8</a>}</span>
+            } else {
+<span class="nocode pln">                {Weave a code block, <a href="weaver.html#1:9">9</a>}</span>
+            }
+        }
+    }
+    output ~= "&lt;/div&gt;\n";
+}
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:5">5</a></p>
+</div>
+</div>
+<a name="1:8"><div class="section"><h4>8. Weave a prose block</h4></a>
+<p>Weaving a prose block is not very complicated. First we get the html by sending it
+through the markdown compiler by using the <code>filterMarkdown</code> function. We disable the
+use of underscores for italics because that interferes with the katex use of underscores
+for math.
+</p>
+<p>Then use a giant regex to determine if any katex is being used. Really what that regex does
+is determine if there is something in dollar signs or double dollar signs which aren't escaped
+by backslashes. Most of the regex is negative look behind to make sure the dollar sign isn't
+escaped.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{Weave a prose block <a href="weaver.html#1:8">8</a>}</span>
+<pre class="prettyprint lang-d">
+string html = filterMarkdown(block.text(), MarkdownFlags.disableUnderscoreEmphasis);
+
+if (html.matchAll(regex(r"(?&lt;!\\)[\$](?&lt;!\\)[\$](.*?)(?&lt;!\\)[\$](?&lt;!\\)[\$]")) || html.matchAll(regex(r"(?&lt;!\\)[\$](.*?)(?&lt;!\\)[\$]"))) {
+    use_katex = true;
+}
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:7">7</a></p>
+</div>
+<p>Here we use the same regex to actually perform the substitution. Double dollars mean a block math
+which means we have to use a div. For inline math (single dollars) we use a span. After that substitution
+we replace all backslash dollars to real dollar signs.
+</p>
+<p>Finally we add this html to the output and add a newline for good measure.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{Weave a prose block <a href="weaver.html#1:8">8</a>} +=</span>
+<pre class="prettyprint lang-d">
+html = html.replaceAll(regex(r"(?&lt;!\\)[\$](?&lt;!\\)[\$](.*?)(?&lt;!\\)[\$](?&lt;!\\)[\$]"), "&lt;div class=\"math\"&gt;$1&lt;/div&gt;");
+html = html.replaceAll(regex(r"(?&lt;!\\)[\$](.*?)(?&lt;!\\)[\$]"), "&lt;span class=\"math\"&gt;$1&lt;/span&gt;");
+html = html.replaceAll(regex(r"\\\$"), "$$");
+output ~= html ~ "\n";
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:7">7</a></p>
+</div>
+</div>
+<a name="1:9"><div class="section"><h4>9. Weave a code block</h4></a>
+
+<div class="codeblock">
+<span class="codeblock_name">{Weave a code block <a href="weaver.html#1:9">9</a>}</span>
+<pre class="prettyprint lang-d">
+output ~= "&lt;div class=\"codeblock\"&gt;\n";
+
+<span class="nocode pln">{Write the title out, <a href="weaver.html#1:10">10</a>}</span>
+<span class="nocode pln">{Write the actual code, <a href="weaver.html#1:11">11</a>}</span>
+<span class="nocode pln">{Write the 'added to' links, <a href="weaver.html#1:13">13</a>}</span>
+<span class="nocode pln">{Write the 'redefined in' links, <a href="weaver.html#1:15">15</a>}</span>
+<span class="nocode pln">{Write the 'used in' links, <a href="weaver.html#1:14">14</a>}</span>
+
+output ~= "&lt;/div&gt;\n";
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:7">7</a></p>
+</div>
+</div>
+<a name="1:10"><div class="section"><h4>10. The codeblock title</h4></a>
+<p>Here we create the title for the codeblock. For the title, we have to link
+to the definition (which is usually the current block, but sometimes not
+because of <code>+=</code>). We also need to make the title bold (<code>&lt;strong&gt;</code>) if it
+is a root code block.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{Write the title out <a href="weaver.html#1:10">10</a>}</span>
+<pre class="prettyprint lang-d">
+<span class="nocode pln">{Find the definition location, <a href="weaver.html#1:10">10</a>}</span>
+<span class="nocode pln">{Make the title bold if necessary, <a href="weaver.html#1:10">10</a>}</span>
+
+output ~= "&lt;span class=\"codeblock_name\"&gt;{" ~ name ~ 
+          " &lt;a href=\"" ~ htmlFile ~ "#" ~ def ~ "\"&gt;" ~ defLocation ~ "&lt;/a&gt;}" ~ extra ~ "&lt;/span&gt;\n";
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:9">9</a></p>
+</div>
+<p>To find the definition location we use the handy <code>defLocation</code> array that we made
+earlier. The reason we have both the variables <code>def</code> and <code>defLocation</code> is because
+the definition location might be in another chapter, in which case it should be
+displayed as <code>chapterNum:sectionNum</code> but if it's in the current file, the <code>chapterNum</code>
+can be removed. <code>def</code> gives us the real definition location, and <code>defLocation</code> is the
+one that will be used -- it strips out the <code>chapterNum</code> if necessary.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{Find the definition location <a href="weaver.html#1:10">10</a>}</span>
+<pre class="prettyprint lang-d">
+string chapterNum;
+string def;
+string defLocation;
+string htmlFile = "";
+if (block.name !in defLocations) {
+    error(c.file, block.startLine, "{" ~ block.name ~ "} is never defined");
+} else {
+    def = defLocations[block.name];
+    defLocation = def;
+    auto index = def.indexOf(":");
+    string chapter = def[0..index];
+    htmlFile = getChapterHtmlFile(p.chapters, chapter);
+    if (chapter == c.num()) {
+        defLocation = def[index + 1..$];
+    }
+}
+</pre>
+
+
+
+</div>
+<p>We also add the <code>+=</code> or <code>:=</code> if necessary. This needs to be the <code>extra</code> because
+it goes outside the <code>{}</code> and is not really part of the name anymore.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{Find the definition location <a href="weaver.html#1:10">10</a>} +=</span>
+<pre class="prettyprint lang-d">
+string extra = "";
+if (block.modifiers.canFind(Modifier.additive)) {
+    extra = " +=";
+} else if (block.modifiers.canFind(Modifier.redef)) {
+    extra = " :=";
+}
+</pre>
+
+
+
+</div>
+<p>We simple put the title in in a strong tag if it is a root codeblock to make it bold.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{Make the title bold if necessary <a href="weaver.html#1:10">10</a>}</span>
+<pre class="prettyprint lang-d">
+string name;
+if (block.isRootBlock) {
+    name = "&lt;strong&gt;" ~ block.name ~ "&lt;/strong&gt;";
+} else {
+    name = block.name;
+}
+</pre>
+
+
+
+</div>
+</div>
+<a name="1:11"><div class="section"><h4>11. The actual code</h4></a>
+<p>At the beginning, we open the pre tag. If a codetype is defined, we tell the prettyprinter
+to use that, otherwise, the pretty printer will try to figure out how to syntax highlight
+on its own -- and it's pretty good at that.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{Write the actual code <a href="weaver.html#1:11">11</a>}</span>
+<pre class="prettyprint lang-d">
+if (block.codeType.split().length &gt; 1) {
+    output ~= "&lt;pre class=\"prettyprint lang-" ~ block.codeType.split()[1][1..$] ~ "\"&gt;\n";
+} else {
+    output ~= "&lt;pre class=\"prettyprint\"&gt;\n";
+}
+
+foreach (lineObj; block.lines) {
+<span class="nocode pln">    {Write the line, <a href="weaver.html#1:11">11</a>}</span>
+}
+output ~= "&lt;/pre&gt;\n";
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:9">9</a></p>
+</div>
+<p>Now we loop through each line. The only complicated thing here is if the line is
+a codeblock use. Then we have to link to the correct definition location.
+</p>
+<p>Also we escape all ampersands and greater than and less than signs before writing them.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{Write the line <a href="weaver.html#1:11">11</a>}</span>
+<pre class="prettyprint lang-d">
+string line = lineObj.text;
+string strippedLine = strip(line);
+if (strippedLine.startsWith("@{") &amp;&amp; strippedLine.endsWith("}")) {
+<span class="nocode pln">    {Link a used codeblock, <a href="weaver.html#1:11">11</a>}</span>
+} else { 
+    output ~= line.replace("&amp;", "&amp;amp;").replace("&gt;", "&amp;gt;").replace("&lt;", "&amp;lt;") ~ "\n";
+}
+</pre>
+
+
+
+</div>
+<p>For linking the used codeblock, it's pretty much the same deal as before. We
+reuse the <code>def</code> and <code>defLocation</code> variables. We also write the final html as
+a span with the <code>nocode</code> class, that way it won't be syntax highlighted by the
+pretty printer.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{Link a used codeblock <a href="weaver.html#1:11">11</a>}</span>
+<pre class="prettyprint lang-d">
+def = "";
+defLocation = "";
+if (strip(strippedLine[2..$ - 1]) !in defLocations) {
+    error(c.file, lineObj.lineNum, "{" ~ strip(strippedLine[2..$ - 1]) ~ "} is never defined");
+} else if (defLocations[strip(strippedLine[2..$ - 1])] != "noWeave") {
+    def = defLocations[strippedLine[2..$ - 1]];
+    defLocation = def;
+    auto index = def.indexOf(":");
+    string chapter = def[0..index];
+    htmlFile = getChapterHtmlFile(p.chapters, chapter);
+    if (chapter == c.num()) {
+        defLocation = def[index + 1..$];
+    }
+    def = ", &lt;a href=\"" ~ htmlFile ~ "#" ~ def ~ "\"&gt;" ~ defLocation ~ "&lt;/a&gt;";
+}
+output ~= "&lt;span class=\"nocode pln\"&gt;" ~ leadingWS(line) ~ "{" ~ strippedLine[2..$ - 1] ~ def ~ "}&lt;/span&gt;\n";
+</pre>
+
+
+
+</div>
+</div>
+<a name="1:12"><div class="section"><h4>12. Add links to other sections</h4></a>
+<p>Writing the links is pretty similar to figuring out where a codeblock
+was defined because we have access to the <code>sectionLocations</code> array (which is
+<code>addLocations</code>, <code>useLocations</code>, or <code>redefLocations</code>). Then we just
+have a few if statements to figure out the grammar -- where to put the <code>and</code>
+and whether to have plurals and whatnot.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{LinkLocations function <a href="weaver.html#1:12">12</a>}</span>
+<pre class="prettyprint lang-d">
+string linkLocations(string text, string[][string] sectionLocations, Program p, Chapter c, Section s, parser.Block block) {
+    if (block.name in sectionLocations) {
+        string[] locations = dup(sectionLocations[block.name]);
+
+        if (locations.canFind(c.num() ~ ":" ~ to!string(s.num))) {
+            locations = remove(locations, locations.countUntil(c.num() ~ ":" ~ to!string(s.num)));
+        }
+
+        if (locations.length &gt; 0) {
+            string seealso = "&lt;p class=\"seealso\"&gt;" ~ text;
+
+            if (locations.length &gt; 1) {
+                seealso ~= "s ";
+            } else {
+                seealso ~= " ";
+            }
+
+            foreach (i; 0 .. locations.length) {
+                string loc = locations[i];
+                string locName = loc;
+                auto index = loc.indexOf(":");
+                string chapter = loc[0..index];
+                string htmlFile = getChapterHtmlFile(p.chapters, chapter);
+                if (chapter == c.num()) {
+                    locName = loc[index + 1..$];
+                }
+                loc = "&lt;a href=\"" ~ htmlFile ~ "#" ~ loc ~ "\"&gt;" ~ locName ~ "&lt;/a&gt;";
+                if (i == 0) {
+                    seealso ~= loc;
+                } else if (i == locations.length - 1) {
+                    seealso ~= " and " ~ loc;
+                } else {
+                    seealso ~= ", " ~ loc;
+                }
+            }
+            seealso ~= "&lt;/p&gt;";
+            return seealso;
+        }
+    }
+    return "";
+}
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:1">1</a></p>
+</div>
+</div>
+<a name="1:13"><div class="section"><h4>13. See also links</h4></a>
+<p>Writing the 'added to' links is pretty similar to figuring out where a codeblock
+was defined because we have access to the <code>addLocations</code> array. Then we just
+have a few if statements to figure out the grammar -- where to put the <code>and</code>
+and whether to have plurals and whatnot.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{Write the 'added to' links <a href="weaver.html#1:13">13</a>}</span>
+<pre class="prettyprint lang-d">
+output ~= linkLocations("Added to in section", addLocations, p, c, s, block) ~ "\n";
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:9">9</a></p>
+</div>
+</div>
+<a name="1:14"><div class="section"><h4>14. Also used in links</h4></a>
+<p>This is pretty much the same as the 'added to' links except we use the
+<code>useLocations</code> array.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{Write the 'used in' links <a href="weaver.html#1:14">14</a>}</span>
+<pre class="prettyprint lang-d">
+output ~= linkLocations("Used in section", useLocations, p, c, s, block) ~ "\n";
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:9">9</a></p>
+</div>
+</div>
+<a name="1:15"><div class="section"><h4>15. Redefined in links</h4></a>
+
+<div class="codeblock">
+<span class="codeblock_name">{Write the 'redefined in' links <a href="weaver.html#1:15">15</a>}</span>
+<pre class="prettyprint lang-d">
+output ~= linkLocations("Redefined in section", redefLocations, p, c, s, block) ~ "\n";
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:9">9</a></p>
+</div>
+</div>
+<a name="1:16"><div class="section"><h4>16. Katex source</h4></a>
+<p>This is the source code for katex which should only be used if math is used in the literate
+file. We include a script which uses the cdn first because that will use better fonts, however
+it needs the user to be connected to the internet. In the case that the user is offline, we include
+the entire source for katex, but it will use worse fonts (still better than nothing though).
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{Write the katex source <a href="weaver.html#1:16">16</a>}</span>
+<pre class="prettyprint lang-d">
+output ~= "&lt;link rel=\"stylesheet\" href=\"http://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.3.0/katex.min.css\"&gt;\n"
+"&lt;script src=\"http://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.3.0/katex.min.js\"&gt;&lt;/script&gt;\n";
+output ~= katex;
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:5">5</a></p>
+</div>
+<p>Then we loop over all the math divs and spans and render the katex.
+</p>
+
+<div class="codeblock">
+<span class="codeblock_name">{Write the katex source <a href="weaver.html#1:16">16</a>} +=</span>
+<pre class="prettyprint lang-d">
+output ~= q"DELIMITER
+&lt;script&gt;
+var mathDivs = document.getElementsByClassName("math")
+for (var i = 0; i &lt; mathDivs.length; i++) {
+    var el = mathDivs[i];
+    var texTxt = el.textContent;
+    try {
+        var displayMode = false;
+        if (el.tagName == 'DIV') {
+            displayMode = true;
+        }
+        katex.render(texTxt, el, {displayMode: displayMode});
+    }
+    catch(err) {
+        el.innerHTML = "&lt;span class='err'&gt;"+err+"&lt;/span&gt;";
+    }
+}
+&lt;/script&gt;
+DELIMITER";
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:5">5</a></p>
+</div>
+
+<div class="codeblock">
+<span class="codeblock_name">{Imports <a href="weaver.html#1:16">16</a>}</span>
+<pre class="prettyprint lang-d">
+import globals;
+import std.file;
+import std.conv;
+import std.algorithm;
+import std.regex;
+import std.path;
+import std.stdio;
+import std.string;
+import parser;
+import util;
+import dmarkdown;
+</pre>
+
+
+<p class="seealso">Used in section <a href="weaver.html#1:1">1</a></p>
+</div>
+
+
+
+
+</div>
+</body>
