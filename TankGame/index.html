@@ -1,6 +1,38 @@
-<!DOCTYPE html>
 <html>
-<head>
-	<meta http-equiv="refresh" content="0; url=http://54.152.144.109:3000/" />
-</head>
+	<head>
+        <meta charset="utf-8"/><title>TankGame</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script>
+            $(document).ready(function(){
+                $("#hide-btn").click(function(){
+                    $("#instructions").hide();
+                });
+            });
+        </script>
+    </head>
+	<body style="margin:0;padding:0;" id="body">
+        <div id="instructions">
+            Scroll down for controls.
+            <button id="hide-btn" type="button">Ok!</button>
+        </div>
+		<canvas id="webgl" globalevents="0" style="width:100%"></canvas>
+		<script type="text/javascript" src="tankgame.js"></script>
+
+        <br>Press enter to join, or plug in a game controller.<br>
+        Controls:
+        <ul>
+            <li>KB1: wasd (move), c (shoot), v (reload)</li>
+            <li>KB2: arrows (move), / (shoot), . (reload)</li>
+            <li>Joypad: analog sticks (move), RB (shoot), LB (reload)</li>
+        </ul>
+
+        Recommended browser: Chromium (Firefox lags).
+
+        <script>
+            $('#canvas').css('width', '100%');
+            $(window).resize(function(){
+                $('#canvas').height($('#canvas').width() / 2.031);
+            });
+        </script>
+	</body>
 </html>

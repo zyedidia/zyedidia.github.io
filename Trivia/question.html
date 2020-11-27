@@ -3,6 +3,16 @@
 	<head>
 		<title>Trivia</title>
 
+        <style>
+            button {
+                background:none!important;
+                border:none; 
+                padding:0!important;
+                text-decoration:underline;
+                cursor:pointer;
+            }
+        </style>
+
 		<body link="#0000FF" vlink="#0000FF" alink="#FF0000"> 
 		</head>
 
@@ -10,10 +20,14 @@
 
 			<p id=question></p>
 			<ul>
-				<li><a href="correct.html"id=corrAns></a></li>
-				<li><a href="incorrect.html"id=ans2></a></li>
-				<li><a href="incorrect.html"id=ans3></a></li>
-				<li><a href="incorrect.html"id=ans4></a></li>
+                <li><button onclick="location.href='correct.html'" type="button" id=corrAns></button></li>
+                <li><button onclick="location.href='incorrect.html'" type="button" id=ans2></button></li>
+                <li><button onclick="location.href='incorrect.html'" type="button" id=ans3></button></li>
+                <li><button onclick="location.href='incorrect.html'" type="button" id=ans4></button></li>
+				<!-- <li><a href="correct.html"id=corrAns></a></li> -->
+				<!-- <li><a href="incorrect.html"id=ans2></a></li> -->
+				<!-- <li><a href="incorrect.html"id=ans3></a></li> -->
+				<!-- <li><a href="incorrect.html"id=ans4></a></li> -->
 			</ul>
 			<script>
 				var question = {question:"Which of the following is a recursive acronym?", corrAns:"WINE", ans2: "IRC", ans3: "RAM", ans4: "VHDL", link: "http://en.wikipedia.org/wiki/Wine_%28software%29"};

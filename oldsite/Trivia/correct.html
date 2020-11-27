@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Correct!</title>
+	</head>
+
+	<body>
+		<img src="http://upload.wikimedia.org/wikipedia/commons/b/b0/Light_green_check.svg" alt="A green checkbox could not be displayed, sorry", height=100, width=100>
+		<p>You were correct!</p>
+
+		<a href="question.html">New Question</a>	
+
+		<script>
+			var strScore = localStorage.getItem("Score");
+			var score = parseInt(strScore);
+			localStorage.setItem("Score", score + 10);
+			var link = localStorage.getItem("link");
+			document.write('<a href= ' + link + '>Click here to learn more</a>');
+		</script>
+
+	</body>
+<html>

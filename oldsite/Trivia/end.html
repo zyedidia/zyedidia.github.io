@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Correct!</title>
+	</head>
+
+	<body>
+		<p>You have reached the end of Trivia!</p>
+		<p id=score></p>
+		<a href=../index.html>Click here to restart</a>
+		<script>
+			document.getElementById("score").innerHTML = "Your score is: " + localStorage.getItem("Score") + " / " + (parseInt(localStorage.getItem("questions")) * 10); 
+		</script>
+	</body>
+</html>

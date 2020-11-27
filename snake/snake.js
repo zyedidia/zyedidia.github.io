@@ -142,9 +142,9 @@ $(document).ready(function() {
 	}
 
 	function init() {
-		var numSnakesStr = window.prompt("How many snakes?", "1");
-		var numSnakes = parseInt(numSnakesStr);
-		createSnakes(numSnakes);
+		// var numSnakesStr = window.prompt("How many snakes?", "1");
+		// var numSnakes = parseInt(numSnakesStr);
+		createSnakes(1);
 		createFoods(2);
 		if (typeof game_loop != "undefined") clearInterval(game_loop);
 		game_loop = setInterval(draw, 60);

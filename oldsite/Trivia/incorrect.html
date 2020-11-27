@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Incorrect!</title>
+	</head>
+
+	<body>
+		<img src="http://upload.wikimedia.org/wikipedia/en/thumb/b/ba/Red_x.svg/600px-Red_x.svg.png" alt="A red x could not be loaded, sorry", height=100, width=100>
+		<p id=corrAns></p>
+
+		<a href="question.html">New Question</a>	
+
+		<script>
+			document.getElementById("corrAns").innerHTML = "You were incorrect. The correct answer was " + localStorage.getItem("corrAns"); 
+			var link = localStorage.getItem("link");
+			document.write('<a href= ' + link + '>Click here to learn more</a>');
+		</script>
+	</body>
+<html>

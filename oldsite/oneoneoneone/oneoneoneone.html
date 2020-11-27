@@ -1,0 +1,20 @@
+<html>
+    <head>
+    </head>
+    <body>
+        Is it 11:11?<br>
+        <span id="ans"></span>
+        <script>
+var d = new Date();
+var h = (d.getHours() + 24) % 12 || 12;
+var m = d.getMinutes();
+console.log(h);
+console.log(m);
+if (h == 11 && m == 11) {
+    document.getElementById("ans").innerHTML = "Yes";
+} else {
+    document.getElementById("ans").innerHTML = "No";
+}
+        </script>
+    </body>
+</html>
