@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Projects</title>
+        <link rel="icon" 
+        type="image/png" 
+        href="./about/minime.png" />
+        <style>
+            img {
+                float: left;
+                margin-right: 5px;
+            }
+            .content {
+                max-width: 900px;
+                margin: 0 auto;
+                line-height: 1.5;
+            }
+            ul {
+                list-style-type: none;
+                margin: 0;
+                padding: 0;
+                overflow: hidden;
+            }
+            li {
+                margin-top: 10px;
+                margin-bottom: 10px;
+                float: left;
+            }
+            li a {
+                /* display: block; */
+                /* padding-right: 12px; */
+                /* background-color: #dddddd; */
+            }
+        </style>
+    </head>
+
+    <body class="content">
+        <h2>Projects</h2>
+        <a href=index.html>Home</a><br><br>
+        <font size=4>
+            <ul>
+                <li>Micro text editor: a modern and intuitive terminal-based text editor. Micro runs in your terminal but feels like a standard GUI editor. It has modern keybindings, mouse support, and good out-of-the-box defaults, including a built-in linter. Micro is distributed as a single binary, which makes it super easy to install. <a href="https://micro-editor.github.io">Website</a> <a href="https://github.com/zyedidia/micro">GitHub</a>.</li><br>
+                <li>GPeg: an incremental PEG parsing machine. GPeg is a library that implements a dynamic incremental parser. It will compile a PEG into a parsing machine language, which can be executed by a small virtual machine. It supports efficient incremental updates to the input text by using a novel incremental parsing algorithm. GPeg also supports some context-sensitive grammars via backreferences. This project was developed as part of my undergraduate senior thesis research. <a href="https://github.com/zyedidia/gpeg">GitHub</a> <a href="https://zyedidia.github.io/preprints/gpeg_sle21.pdf">Publication</a> <a href="https://zyedidia.github.io/talks/gpeg_sle21_slides.pdf">Slides</a> <a href="https://zyedidia.github.io/notes/yedidia_thesis.pdf">Thesis</a>.</li>
+                <li>Perforator: get perf metrics for individual functions. Perforator is a tool for recording performance metrics in a program. Linux's perf is a great tool for this (it records many different metrics, such as branch mispredictions, cache accesses, etc.), but it records over the entire duration of a program. Perforator allows you to record those same metrics over an individual function. Perforator works by using ptrace and debugging breakpoints -- it places a breakpoint at the beginning of the function to inspect. When the traced process arrives there, it begins enables the system's hardware performance counters, and scans the stack to place a breakpoint at the return address. When the return address breakpoint is reached, the system's performance counters are read and disabled. <a href="https://github.com/zyedidia/perforator">GitHub</a>.</li>
+                <li>Literate: a flexible literate programming system. Literate programming is a style of programming invented by Donald Knuth where prose and code are interleaved. Knuth originally wrote a tool called CWeb for literate programming with C. Literate is a new tool for Literate programming with any language. It generates HTML documents instead of PDF, uses Markdown, and produces readable code (including auto-generated comments). It can also report compiler errors back to the original source code in the Literate document. Literate is supported by default by Micro, and there is also a Vim plugin. Some popular blog posts have been written using Literate. <a href="https://zyedidia.github.io/literate">Website</a> <a href="https://github.com/zyedidia/literate">GitHub</a> <a href="https://github.com/zyedidia/literate.vim">Vim plugin</a>.</li>
+                <li>Eget: easily install pre-built binaries from GitHub. Lots of projects provide pre-built binaries via GitHub releases, but downloading these is annoyingly manual. Eget is a CLI tool that automates this process. Given a repository, it fetches the latest release, scans the assets for a matching system, downloads the archive and extracts a binary. If configured, it may also place the binary on your PATH. If it runs into difficulties, it will ask the user for input. I now use Eget to install all my essential dev tools when I am using a new machine. <code>eget zyedidia/micro; eget ogham/exa; eget sharkdp/fd; eget BurntSushi/ripgrep; eget neovim/neovim</code>... <a href="https://github.com/zyedidia/eget">GitHub</a>.</li>
+                <li>sregx: a structural regular expression tool. Coming soon. <a href="https://github.com/zyedidia/sregx">GitHub</a>.</li>
+                <li>rvasm: a basic RV32i RISC-V assembler. Coming soon. <a href="https://github.com/zyedidia/rvasm">GitHub</a>.</li>
+                <li>flare: a syntax highlighting library built on GPeg. Coming soon. <a href="https://github.com/zyedidia/flare">GitHub</a>.</li>
+                <li>tzu: an experiment in unpredictability. Coming soon. <a href="https://github.com/zyedidia/tzu">GitHub</a>.</li>
+            </ul>
+        </font>
+    </body>
+</html>
