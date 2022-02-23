@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<head>
+    <style>
+* { font: 8px monospace; }
+body { width: 100%; }
+video, canvas { display: none; }
+#outer {
+    margin: 0 auto;
+    width: 100%;
+    text-align: center;
+}
+#ascii {
+    display: inline-block;
+    margin: 0 auto;
+    padding: 0;
+}
+    </style>
+    <script id=ascii_video type=ascii-art>
+    </script>
+</head>
+<body>
+    <div id="outer">
+        <pre id="ascii"></pre><br>
+    </div>
+    <canvas width=200 height=80></canvas>
+    <video autoplay></video>
+
+    <script>
+window.URL = window.URL || window.webkitURL;
+navigator.getUserMedia = 
+navigator.getUserMedia || 
+navigator.webkitGetUserMedia ||
+navigator.mozGetUserMedia ||
+navigator.msGetUserMedia;
+
+window.requestAnimationFrame =
+window.requestAnimationFrame ||
+window.webkitRequestAnimationFrame ||
+window.mozRequestAnimationFrame ||
+window.oRequestAnimationFrame ||
+window.msRequestAnimationFrame;
+
+function $(s) { return document.querySelector(s) }
+
+var pre = $('#ascii');
+var video = $('video');
+var canvas = $('canvas');
+
+var GAMMA = 0.45;
+var HREVERSE = true;
+var MESSAGE;
+
+function go() {
+    if (navigator.getUserMedia) {
+        navigator.getUserMedia({audio: false, video: true}, function (stream) {
+            video.srcObject = stream
+            MESSAGE = null;
+        }, function (err) {
+        })
+    } else {
+    }
+}
+
+go();
+requestAnimationFrame(tick);
+
+var W = canvas.width;
+var H = canvas.height;
+var start = +new Date();
+function tick() {
+    requestAnimationFrame(tick);
+
+    var ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    pre.innerHTML = greyscale(ctx);
+}
+
+function greyscale(ctx) {
+    var palette = "MNHQ$OC?7>!:-;.` "
+    var ascii = "";
+    var pixels = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    for (var y = 0; y < H; ++y) {
+        for (var x = 0; x < W; ++x) {
+            var rx = HREVERSE ? W-1-x : x;
+            var p = 4 * (rx + pixels.width * y);
+            var r = pixels.data[p++];
+            var g = pixels.data[p++];
+            var b = pixels.data[p++];
+            // var v = Math.max(r, g, b) / 255;
+            // v = 1 - Math.pow(v, GAMMA);
+            // v = (v * palette.length) >> 0;
+            // v = Math.max(0, Math.min(palette.length - 1, v));
+            ascii += palette[parseInt((r + g + b) / 3 / 256 * 17)]
+            // ascii += palette[v];
+        }
+        if (y < H-1)
+            ascii += '\n';
+    }
+    return ascii;
+}
+    </script>
+</body>
