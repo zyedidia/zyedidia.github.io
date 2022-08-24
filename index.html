@@ -24,13 +24,13 @@
                 padding: 0;
                 overflow: hidden;
             }
-            li {
-                float: left;
-            }
             li a {
                 display: block;
                 padding-right: 12px;
                 /* background-color: #dddddd; */
+            }
+            #projects td {
+                padding: 5px;
             }
             body { 
             }
@@ -70,21 +70,6 @@
         <hr>
         <table style="width:100%">
             <tr valign=top>
-                <td><b>Projects</b><br>
-                    <font size=3>
-                        <a href="https://micro-editor.github.io">Micro text editor</a> - <a href="https://github.com/zyedidia/micro">GitHub</a><br>
-                        <a href="https://github.com/zyedidia/gpeg">GPeg</a><br>
-                        <a href="https://github.com/zyedidia/flare">Flare</a><br>
-                        <a href="https://github.com/zyedidia/perforator">Perforator</a><br>
-                        <a href="https://zyedidia.github.io/literate">Literate</a> - <a href="https://github.com/zyedidia/literate">GitHub</a><br>
-                        <a href="https://github.com/zyedidia/eget">Eget</a><br>
-                        <a href="https://github.com/zyedidia/rvsym">Rvsym</a><br>
-                        <a href="https://github.com/zyedidia/rvasm">Rvasm</a><br>
-                        <a href="https://github.com/zyedidia/generic">Generic</a><br>
-                        <a href="https://github.com/zyedidia/sregx">Sregx</a><br>
-                        <a href="https://github.com/zyedidia/crypt">Crypt</a><br>
-                    </font>
-                </td>
                 <td><b>Notes and guides</b><br>
                     <font size=3>
                         <a href="./notes/sv_guide.pdf">SystemVerilog</a><br>
@@ -102,7 +87,9 @@
                         <a href="https://neovim.io/">Neovim</a> (my second-favorite editor)<br>
                         <a href="https://pandoc.org/">Pandoc</a><br>
                         <a href="https://www.youtube.com/playlist?list=PL7qUW0KPfsIIOPOKL84wK_Qj9N7gvJX6v">Razavi electronics</a><br>
-                        <a href="https://www.scs.stanford.edu/~zyedidia/docs">Documentation</a><br>
+                        <a href="https://www.scs.stanford.edu/~zyedidia/docs">Documents</a><br>
+                        <a href="https://github.com/chipsalliance/chisel3">Chisel</a><br>
+                        <a href="https://circt.llvm.org">CIRCT</a><br>
                     </font>
                 </td>
                 <td><b>Fun</b><br>
@@ -115,12 +102,71 @@
                         <a href="textcam.html">Text Camera</a><br>
                         <a href="oneoneoneone/oneoneoneone.html">1111</a><br>
                         <a href="http://libraryofjuggling.com/">Library of juggling</a><br>
-                        <a href="https://www.scs.stanford.edu/~zyedidia/boards">Boards</a><br>
+                        <a href="https://www.scs.stanford.edu/~zyedidia/boards">Cool boards!</a><br>
                     </font>
                 </td>
             </tr><tr valign=top>
         </table>
         <hr>
+        <h2>Projects</h2>
+        <table id="projects" style="width:100%">
+            <tr>
+                <td><b>Micro</b>: a modern and intuitive text editor.</td>
+                <td><a href="https://github.com/zyedidia/micro">Source</a></td>
+                <td><a href="https://micro-editor.github.io">Website</a></td>
+            </tr>
+            <tr>
+                <td><b>Knit</b>: a smart and powerful build tool using a Make-like rules language embedded in Lua.</td>
+                <td><a href="https://github.com/zyedidia/knit">Source</a></td>
+            </tr>
+            <tr>
+                <td><b>Riscinator</b>: a RISC-V CPU core with a 3-stage pipeline built with Chisel. Implements the rv32i ISA, with U/M-mode, and a system with UART and GPIO peripherals.</td>
+                <td><a href="https://github.com/zyedidia/riscinator">Source</a></td>
+            </tr>
+            <tr>
+                <td><b>Eget</b>: a tool for automatically installing pre-built binaries.</td>
+                <td><a href="https://github.com/zyedidia/eget">Source</a></td>
+            </tr>
+            <tr>
+                <td><b>GPeg</b>: an incremental PEG parser.</td>
+                <td><a href="https://github.com/zyedidia/gpeg">Source</a></td>
+                <td><a href="https://zyedidia.github.io/preprints/gpeg_sle21.pdf">Paper</a></td>
+            </tr>
+            <tr>
+                <td><b>Flare</b>: a syntax highlighter built with GPeg.</td>
+                <td><a href="https://github.com/zyedidia/flare">Source</a></td>
+            </tr>
+            <tr>
+                <td><b>Literate</b>: a flexible literate programming system.</td>
+                <td><a href="https://github.com/zyedidia/Literate">Source</a></td>
+                <td><a href="https://zyedidia.github.io/literate">Website</a></td>
+            </tr>
+            <tr>
+                <td><b>Generic</b>: a Go library of generic data structures.</td>
+                <td><a href="https://github.com/zyedidia/generic">Source</a></td>
+            </tr>
+            <tr>
+                <td><b>Perforator</b>: a per-function profiler using perf and ptrace.</td>
+                <td><a href="https://github.com/zyedidia/perforator">Source</a></td>
+            </tr>
+            <tr>
+                <td><b>Rvsym</b>: a small RISC-V symbolic execution engine.</td>
+                <td><a href="https://github.com/zyedidia/rvsym">Source</a></td>
+            </tr>
+            <tr>
+                <td><b>Rvasm</b>: a toy RISC-V assembler.</td>
+                <td><a href="https://github.com/zyedidia/rvasm">Source</a></td>
+            </tr>
+            <tr>
+                <td><b>Sregx</b>: a tool for parsing/editing files with structural regular expressions.</td>
+                <td><a href="https://github.com/zyedidia/sregx">Source</a></td>
+            </tr>
+            <tr>
+                <td><b>Crypt</b>: a tool for encrypting files.</td>
+                <td><a href="https://github.com/zyedidia/crypt">Source</a></td>
+            </tr>
+            </tr>
+        </table>
         <script data-goatcounter="https://18947513.goatcounter.com/count" src="data/count.js"></script>
     </body>
 </html>
