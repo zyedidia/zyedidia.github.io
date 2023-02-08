@@ -4,14 +4,31 @@
   
   <url>
     <loc>https://zyedidia.github.io/blog/categories/</loc>
+    <lastmod>2023-02-07T00:00:00+00:00</lastmod>
   </url>
   
   <url>
-    <loc>https://zyedidia.github.io/blog/tags/</loc>
+    <loc>https://zyedidia.github.io/blog/categories/general/</loc>
+    <lastmod>2023-02-07T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://zyedidia.github.io/blog/posts/</loc>
+    <lastmod>2023-02-07T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://zyedidia.github.io/blog/posts/0-starting-a-blog/</loc>
+    <lastmod>2023-02-07T00:00:00+00:00</lastmod>
   </url>
   
   <url>
     <loc>https://zyedidia.github.io/blog/</loc>
+    <lastmod>2023-02-07T00:00:00+00:00</lastmod>
+  </url>
+  
+  <url>
+    <loc>https://zyedidia.github.io/blog/tags/</loc>
   </url>
   
 </urlset>
