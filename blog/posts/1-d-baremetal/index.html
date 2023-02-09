@@ -459,6 +459,10 @@ we&rsquo;ll have a bare-metal <code>Hello world!</code> in no time.</p>
 $ qemu-system-riscv64 -nographic -bios none -machine virt -kernel prog.bin
 Hello world!
 </code></pre></div><p>There you have it, (simulated) bare-metal hello world!</p>
+<p>Some of the initialization we&rsquo;ve done hasn&rsquo;t been strictly necessary (we didn&rsquo;t
+end up using any variables in the BSS), but it should set you up properly for
+writing more complex bare-metal programs. The next sections discuss some
+further steps.</p>
 <h1 id="bonus-content">Bonus content</h1>
 <h2 id="adding-support-for-assertions-and-bounds-checking">Adding support for assertions and bounds-checking</h2>
 <p>If you try to use a D assert expression, you might notice that the linking step fails:</p>
