@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Writing a bare-metal RISC-V application in D | Zachary Yedidia&#39;s blog</title>
+    <link rel="stylesheet" href="/blog/css/style.css" />
+    <link rel="stylesheet" href="/blog/css/fonts.css" />
+    
+  </head>
+
+  <body>
+    <nav>
+    <ul class="menu">
+      
+      <li><a href="/blog">Blog</a></li>
+      
+      <li><a href="https://zyedidia.github.io">About Me</a></li>
+      
+      <li><a href="/blog/categories/">Categories</a></li>
+      
+      <li><a href="/blog/index.xml">RSS Feed</a></li>
+      
+    </ul>
+    <hr/>
+    </nav>
+
+<div class="article-meta">
+<h1><span class="title">Writing a bare-metal RISC-V application in D</span></h1>
+
+<h2 class="date">2023/02/08</h2>
+<p class="terms">
+  
+  
+  Categories: <a href="/blog/categories/d">d</a> <a href="/blog/categories/osdev">osdev</a> <a href="/blog/categories/riscv">riscv</a> 
+  
+  
+  
+  
+</p>
+</div>
+
+<main>
+<p>This post will show you how to use D to write a bare-metal &ldquo;Hello world&rdquo;
+program that targets the RISC-V QEMU simulator.  In a future blog post we&rsquo;ll
+build on this to target actual hardware: the <a href="https://www.kickstarter.com/projects/starfive/visionfive-2">VisionFive
+2</a> SBC.</p>
+<h1 id="why-d">Why D?</h1>
+<p>Recently I&rsquo;ve been writing bare-metal code in C, and I&rsquo;ve become a bit
+frustrated with the lack of features that C provides. I started searching for a
+good replacement, and revisited <a href="https://dlang.org">D</a> (a language I used for a
+project a few years ago).  It turns out D has introduced a mode called
+<a href="https://dlang.org/spec/betterc.html">betterC</a><sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup> (sounds exactly like what I
+want), which essentially disables all language features that require the D
+runtime. This makes it roughly as easy to use D for bare-metal programming as
+C. You don&rsquo;t get all the features of D, but you get enough that it covers all
+the things I want (in fact, for systems programming I prefer the betterC subset
+of D over full D). D in betterC mode is exactly what it sounds like, and
+retains the feel of C &ndash; going forward I think I will be using it instead of C
+in all situations where I would have otherwise used C (even in non-bare-metal
+situations).</p>
+<p>Here are the positives about D I value most:</p>
+<ul>
+<li>A decent import system (no more header files and <code>#include</code>).</li>
+<li>Automatic bounds checking, and bounded strings and arrays.</li>
+<li>Methods in structs.</li>
+<li>Compile-time code evaluation (run D code at compile-time!).</li>
+<li>Powerful templating and generics.</li>
+<li>Iterators.</li>
+<li>Default support for thread-local storage.</li>
+<li>Scope guards and RAII.</li>
+<li>Some memory safety protections with <code>@safe</code>.</li>
+<li>A fairly comprehensive and readable <a href="https://dlang.org/spec/spec.html">online specification</a>.</li>
+<li>An active discord channel with people that answer my questions in minutes.</li>
+<li>Both an LLVM-based compiler (LDC) and an GNU compiler (GDC), which is officially
+part of the GCC project.
+<ul>
+<li>And these compilers both export roughly the same flags and intrinsics as
+Clang and GCC respectively.</li>
+</ul>
+</li>
+</ul>
+<p>These features, combined with the lack of a runtime and the C-like feel of the
+language (making it easy to port previous code), make it a no-brainer for me to
+have D as the base choice for any project where I would otherwise use C.</p>
+<h1 id="installing-the-toolchain">Installing the toolchain</h1>
+<p>Now that I&rsquo;ve told you about my reasons for choosing D, let&rsquo;s try using it to
+write a bare-metal application that targets RISC-V. If you want to follow
+along, the first step is to download the toolchain. You&rsquo;ll need three different
+components:</p>
+<ol>
+<li>LDC (the LLVM-based D compiler). Can be downloaded from
+<a href="https://github.com/ldc-developers/ldc/releases/latest">GitHub</a>.</li>
+<li>A <code>riscv64-unknown-elf</code> GNU toolchain. Can be downloaded from
+SiFive&rsquo;s <a href="https://github.com/sifive/freedom-tools/releases">Freedom Tools
+repository</a>.</li>
+<li>The QEMU RISC-V simulator: <code>qemu-system-riscv64</code>. Can be downloaded from
+SiFive&rsquo;s <a href="https://github.com/sifive/freedom-tools/releases">Freedom Tools
+repository</a>, or also
+usually available as part of your system&rsquo;s QEMU package.</li>
+</ol>
+<p>We&rsquo;ll be using LDC since it ships with the ability to target <code>riscv64</code>.  I have
+used GDC for bare-metal development as well, but it requires building a
+toolchain from source since nobody ships pre-built <code>riscv64-unknown-elf-gdc</code>
+binaries. We&rsquo;ll use the GNU toolchain for assembling, linking, and for other
+tools like <code>objcopy</code> and <code>objdump</code>, and QEMU for simulating the hardware.</p>
+<p>With these installed you should be able to run:</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-txt" data-lang="txt">$ ldc2 --version
+LDC - the LLVM D compiler (1.30.0):
+...
+
+$ riscv64-unknown-elf-ld
+riscv64-unknown-elf-ld: no input files
+</code></pre></div><h1 id="cpu-entrypoint">CPU entrypoint</h1>
+<p>We&rsquo;re writing bare-metal code, so there&rsquo;s no operating system, no console, no
+files &ndash; nothing. The CPU just starts executing instructions at a pre-specified
+address<sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup> after performing some initial setup. We&rsquo;ll figure out what that
+address is later when we set up the linkerscript. For now we can just define
+the <code>_start</code> symbol as our entrypoint, and assume the linker will place the
+code at this label at the CPU entrypoint.</p>
+<p>A D function requires a valid stack pointer, so before we can execute any D code
+we need to load the stack pointer register <code>sp</code> with a valid address.</p>
+<p>Let&rsquo;s make a file called <code>start.s</code> and put the following in it:</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-asm" data-lang="asm"><span style="color:#4070a0">.section</span> <span style="color:#4070a0">&#34;.text.boot&#34;</span>
+
+<span style="color:#4070a0">.globl</span> <span style="color:#60add5">_start</span>
+<span style="color:#002070;font-weight:bold">_start:</span>
+    <span style="color:#06287e">la</span> <span style="color:#60add5">sp</span>, <span style="color:#60add5">_stack_start</span>
+    <span style="color:#06287e">call</span> <span style="color:#60add5">dstart</span>
+<span style="color:#002070;font-weight:bold">_hlt:</span>
+    <span style="color:#06287e">j</span> <span style="color:#60add5">_hlt</span>
+</code></pre></div><p>For now let&rsquo;s assume <code>_stack_start</code> is a symbol with the address of a valid
+stack, and in the linkerscript we&rsquo;ll set this up properly. After loading <code>sp</code>,
+we call a D function called <code>dstart</code>, defined in the next part.</p>
+<h1 id="d-entrypoint">D entrypoint</h1>
+<p>Now we can define our <code>dstart</code> function in <code>dstart.d</code>. For now we&rsquo;ll just cause
+an infinite loop.</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-d" data-lang="d"><span style="color:#007020;font-weight:bold">module</span> <span style="color:#0e84b5;font-weight:bold">dstart</span><span style="color:#666">;</span>
+
+extern <span style="color:#666">(</span>C<span style="color:#666">)</span> <span style="color:#902000">void</span> <span style="color:#06287e">dstart</span><span style="color:#666">()</span> <span style="color:#666">{</span>
+    <span style="color:#007020;font-weight:bold">while</span> <span style="color:#666">(</span><span style="color:#40a070">1</span><span style="color:#666">)</span> <span style="color:#666">{}</span>
+<span style="color:#666">}</span>
+</code></pre></div><h1 id="linkerscript">Linkerscript</h1>
+<p>Before we can compile this program we need a bit of linkerscript to tell the
+linker how our code should be laid out. We&rsquo;ll need to specify the address where
+the text section should start (the entry address), and reserve space for all
+the data sections (<code>.rodata</code>, <code>.data</code>, <code>.bss</code>), and the stack.</p>
+<h2 id="entry-address">Entry address</h2>
+<p>Today we&rsquo;ll be targeting the QEMU <code>virt</code> RISC-V machine, so we have
+to figure out what its entrypoint is.</p>
+<p>We can ask QEMU for a list of all devices in the <code>virt</code> machine by telling it
+to dump the its device tree:</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-txt" data-lang="txt">$ qemu-system-riscv64 -machine virt,dumpdtb=virt.dtb
+$ dtc virt.dtb &gt; virt.dts
+</code></pre></div><p>In <code>virt.dts</code> you&rsquo;ll find the following entry:</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-txt" data-lang="txt">memory@80000000 {
+    device_type = &#34;memory&#34;;
+    reg = &lt;0x00 0x80000000 0x00 0x8000000&gt;;
+};
+</code></pre></div><p>This means that RAM starts at address <code>0x80000000</code> (everything below is special
+memory or inaccessible). The CPU entrypoint for the <code>virt</code> machine is the first
+instruction in RAM, stored at <code>0x80000000</code>.</p>
+<p>In the linkerscript, we need to tell the linker that it should place the
+<code>_start</code> function at <code>0x80000000</code>. We do this by telling it to put the
+<code>.text.boot</code> section first in the <code>.text</code> section, located at <code>0x80000000</code>.
+Then we include the rest of the <code>.text</code> sections, followed by read-only data,
+writable data, and the BSS.</p>
+<p>In <code>link.ld</code>:</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-txt" data-lang="txt">ENTRY(_start)
+
+SECTIONS
+{
+    .text 0x80000000 : {
+        KEEP(*(.text.boot))  
+        *(.text*) 
+    }
+    .rodata : {
+        . = ALIGN(8);
+        *(.rodata*)
+        *(.srodata*)
+    }
+    .data : { 
+        . = ALIGN(8);
+        *(.sdata*)
+        *(.data*)
+    } 
+    .bss : {
+        . = ALIGN(8);
+        _bss_start = .;
+        *(.sbss*)
+        *(.bss*)
+        *(COMMON)
+        . = ALIGN(8);
+        _bss_end = .;
+    }
+
+    .kstack : {
+        . = ALIGN(16);
+        . += 4K;
+        _stack_start = .;
+    }
+
+    /DISCARD/ : { *(.comment .note .eh_frame) }
+}
+</code></pre></div><h2 id="what-is-the-bss">What is the BSS?</h2>
+<p>The BSS is a region of memory that the compiler assumes is initialized to all
+zeroes. Usually the static data for a program is directly copied into the ELF
+executable &ndash; if you have a string <code>&quot;hello world&quot;</code> in your program, those exact
+bytes will live somewhere in the binary (in the read-only data section).
+However, a lot of static data is initialized to zero, so instead of putting
+those zero bytes directly into the ELF file, the linker lets us save space by
+making a special section (the BSS) that must be initialized to all zeroes at
+runtime, but won&rsquo;t actually contain that data in the ELF file itself.  So even
+if you have a giant 1MB array of zeroes, your ELF binary will be small because
+that section will be expanded into RAM only when the application starts.
+Usually the OS sets up the BSS before it launches a program, but we&rsquo;re running
+bare-metal, so we have to do that manually in the <code>dstart</code> function (in the
+next section).  To make this initialization possible, we define the
+<code>_bss_start</code> and <code>_bss_end</code> symbols in the linkerscript. These are symbols
+whose <em>addresses</em> will be the start and end of the BSS section respectively.</p>
+<h2 id="reserving-space-for-the-stack">Reserving space for the stack</h2>
+<p>We also reserve one page for the <code>.kstack</code> section and mark the <code>_stack_start</code>
+symbol to be located to the end of it (remember the stack grows down). The
+stack must be 16-byte aligned.</p>
+<h1 id="compile">Compile!</h1>
+<p>Now we have everything we need to compile a basic bare-metal program.</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-txt" data-lang="txt">$ ldc2 -Oz -betterC -mtriple=riscv64-unknown-elf -mattr=+m,+a,+c --code-model=medium -c dstart.d
+$ riscv64-unknown-elf-as -mno-relax -march=rv64imac start.S -c -o start.o
+$ riscv64-unknown-elf-ld -Tlink.ld start.o dstart.o -o prog.elf
+</code></pre></div><p>Let&rsquo;s look at some of these flags:</p>
+<ul>
+<li><code>Oz</code>: optimize aggressively for size.</li>
+<li><code>betterC</code>: enable betterC mode (disable the built-in D runtime).</li>
+<li><code>mtriple=riscv64-unknown-elf</code>: build for the riscv64 bare-metal ELF target.</li>
+<li><code>mattr=+m,+a,+c</code>: enable the following RISC-V extensions: <code>m</code>
+(multiply/divide), <code>a</code> (atomics), and <code>c</code> (compressed instructions).</li>
+<li><code>code-model=medium</code>: <a href="https://www.sifive.com/blog/all-aboard-part-4-risc-v-code-models">code
+models</a> in
+RISC-V control how pointers to far away locations are constructed. The
+<code>medium</code> code model (also called <code>medany</code>) allows us to address any symbol
+located within 2 GiB of the current address, and is recommended for 64-bit
+programs. See the SiFive post for more information.</li>
+<li><code>mno-relax</code>: disables linker relaxation in the assembler (it is already
+disabled by default in LDC). Linker relaxation is a RISC-V-specific
+optimization that allows the linker to make use of the <code>gp</code> (global pointer)
+register.  I explain it in more detail in the <a href="#enabling-linker-relaxation">linker relaxation
+section</a>.</li>
+</ul>
+<p>It&rsquo;s going to get tedious to type out these commands repeatedly, so let&rsquo;s
+create a Makefile<sup id="fnref:3"><a href="#fn:3" class="footnote-ref" role="doc-noteref">3</a></sup> (or a <a href="https://github.com/zyedidia/knit">Knitfile</a> if you&rsquo;re
+cool):</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-make" data-lang="make"><span style="color:#bb60d5">SRC</span><span style="color:#666">=</span><span style="color:#007020;font-weight:bold">$(</span>wildcard *.d<span style="color:#007020;font-weight:bold">)</span>
+<span style="color:#bb60d5">OBJ</span><span style="color:#666">=</span><span style="color:#007020;font-weight:bold">$(</span>SRC:.d<span style="color:#666">=</span>.o<span style="color:#007020;font-weight:bold">)</span>
+
+<span style="color:#06287e">all</span><span style="color:#666">:</span> prog.bin
+
+<span style="color:#06287e">%.o</span><span style="color:#666">:</span> %.d
+	ldc2 -Oz -betterC -mtriple<span style="color:#666">=</span>riscv64-unknown-elf -mattr<span style="color:#666">=</span>+m,+a,+c,+relax --code-model<span style="color:#666">=</span>medium --makedeps<span style="color:#666">=</span><span style="color:#bb60d5">$*</span>.dep $&lt; -c -of <span style="color:#bb60d5">$@</span>
+<span style="color:#06287e">%.o</span><span style="color:#666">:</span> %.s
+	riscv64-unknown-elf-as -march<span style="color:#666">=</span>rv64imac $&lt; -c -o <span style="color:#bb60d5">$@</span>
+<span style="color:#06287e">prog.elf</span><span style="color:#666">:</span> start.o <span style="color:#007020;font-weight:bold">$(</span><span style="color:#bb60d5">OBJ</span><span style="color:#007020;font-weight:bold">)</span>
+	riscv64-unknown-elf-ld -Tlink.ld $^ -o <span style="color:#bb60d5">$@</span>
+<span style="color:#06287e">%.bin</span><span style="color:#666">:</span> %.elf
+	riscv64-unknown-elf-objcopy $&lt; -O binary <span style="color:#bb60d5">$@</span>
+<span style="color:#06287e">%.list</span><span style="color:#666">:</span> %.elf
+	riscv64-unknown-elf-objdump -D $&lt; &gt; <span style="color:#bb60d5">$@</span>
+<span style="color:#06287e">run</span><span style="color:#666">:</span> prog.bin
+	qemu-system-riscv64 -nographic -bios none -machine virt -kernel prog.bin
+<span style="color:#06287e">clean</span><span style="color:#666">:</span>
+	rm -f *.bin *.list *.o *.elf *.dep
+
+<span style="">-include</span> <span style="">*.dep</span>
+</code></pre></div><p>and compile with</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-txt" data-lang="txt">$ make prog.bin
+</code></pre></div><p>This file is a raw dump of our program. At this point it clocks in at a
+whopping 22 bytes.</p>
+<p>To see the disassembled program, run</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-txt" data-lang="txt">$ make prog.list
+...
+$ cat prog.list
+prog.elf:     file format elf64-littleriscv
+
+Disassembly of section .text:
+
+0000000080000000 &lt;_start&gt;:
+    80000000:	00001117          	auipc	sp,0x1
+    80000004:	02010113          	addi	sp,sp,32 # 80001020 &lt;_stack_start&gt;
+    80000008:	00000097          	auipc	ra,0x0
+    8000000c:	00c080e7          	jalr	12(ra) # 80000014 &lt;dstart&gt;
+
+0000000080000010 &lt;_hlt&gt;:
+    80000010:	a001                	j	80000010 &lt;_hlt&gt;
+    ...
+
+0000000080000014 &lt;dstart&gt;:
+    80000014:	a001                	j	80000014 &lt;dstart&gt;
+</code></pre></div><p>Looks like our <code>_start</code> function is being linked properly at <code>0x80000000</code> and
+has the expected assembly!</p>
+<p>If you try to run with</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-txt" data-lang="txt">$ make run
+qemu-system-riscv64 -nographic -bios none -machine virt -kernel prog.bin
+</code></pre></div><p>it will just enter an infinite loop (press <code>Ctrl-A</code> <code>Ctrl-X</code> to quit QEMU). We
+still have a bit more work to do before we get output.</p>
+<h1 id="more-setup-initializing-the-bss">More setup: initializing the BSS</h1>
+<p>Now let&rsquo;s modify <code>dstart</code> to initialize the BSS. We need to declare some
+<code>extern</code> variables so that the linker symbols <code>_bss_start</code> and <code>_bss_end</code> are
+available to our D code. Then we can just loop from <code>_bss_start</code> to <code>_bss_end</code>
+and assign all the bytes in that range to zero. Once complete, our BSS is
+initialized and we can run arbitrary<sup id="fnref:4"><a href="#fn:4" class="footnote-ref" role="doc-noteref">4</a></sup> D code (using globals that may be
+initialized to zero).</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-d" data-lang="d">extern <span style="color:#666">(</span>C<span style="color:#666">)</span> <span style="color:#666">{</span>
+    extern <span style="color:#007020;font-weight:bold">__gshared</span> <span style="color:#902000">uint</span> _bss_start<span style="color:#666">,</span> _bss_end<span style="color:#666">;</span>
+
+    <span style="color:#902000">void</span> <span style="color:#06287e">dstart</span><span style="color:#666">()</span> <span style="color:#666">{</span>
+        <span style="color:#902000">uint</span><span style="color:#666">*</span> bss <span style="color:#666">=</span> <span style="color:#666">&amp;</span>_bss_start<span style="color:#666">;</span>
+        <span style="color:#902000">uint</span><span style="color:#666">*</span> bss_end <span style="color:#666">=</span> <span style="color:#666">&amp;</span>_bss_end<span style="color:#666">;</span>
+        <span style="color:#007020;font-weight:bold">while</span> <span style="color:#666">(</span>bss <span style="color:#666">&lt;</span> bss_end<span style="color:#666">)</span> <span style="color:#666">{</span>
+            <span style="color:#666">*</span>bss<span style="color:#666">++</span> <span style="color:#666">=</span> <span style="color:#40a070">0</span><span style="color:#666">;</span>
+        <span style="color:#666">}</span>
+
+        <span style="color:#007020;font-weight:bold">import</span> <span style="color:#0e84b5;font-weight:bold">main</span><span style="color:#666">;</span>
+        kmain<span style="color:#666">();</span>
+    <span style="color:#666">}</span>
+<span style="color:#666">}</span>
+</code></pre></div><p>And in <code>main.d</code> we have our bare-metal main entrypoint:</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-d" data-lang="d"><span style="color:#007020;font-weight:bold">module</span> <span style="color:#0e84b5;font-weight:bold">main</span><span style="color:#666">;</span>
+
+<span style="color:#902000">void</span> <span style="color:#06287e">kmain</span><span style="color:#666">()</span> <span style="color:#666">{}</span>
+</code></pre></div><h1 id="creating-a-minimal-d-runtime">Creating a minimal D runtime</h1>
+<p>Several D language features are unavailable because of our lack of runtime. For
+example, types such as <code>string</code> and <code>size_t</code> are undefined, and we can&rsquo;t use
+assertions (we&rsquo;ll get to those later). The first step to creating a minimal
+runtime is to create an <code>object.d</code> file. The D compiler will search for this
+special file and import it automatically everywhere. So we can create
+definitions for types like <code>string</code> and <code>size_t</code> here. Here is the minimal
+definition I like to use, which also defines <code>ptrdiff_t</code>, <code>noreturn</code>, and
+<code>uintptr</code>.</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-d" data-lang="d"><span style="color:#007020;font-weight:bold">module</span> <span style="color:#0e84b5;font-weight:bold">object</span><span style="color:#666">;</span>
+
+<span style="color:#007020;font-weight:bold">alias</span> <span style="color:#902000">string</span> <span style="color:#666">=</span> immutable<span style="color:#666">(</span><span style="color:#902000">char</span><span style="color:#666">)[];</span>
+<span style="color:#007020;font-weight:bold">alias</span> size_t <span style="color:#666">=</span> typeof<span style="color:#666">(</span><span style="color:#902000">int</span><span style="color:#666">.</span><span style="color:#4070a0">sizeof</span><span style="color:#666">);</span>
+<span style="color:#007020;font-weight:bold">alias</span> ptrdiff_t <span style="color:#666">=</span> typeof<span style="color:#666">(</span><span style="color:#007020;font-weight:bold">cast</span><span style="color:#666">(</span><span style="color:#902000">void</span><span style="color:#666">*)</span> <span style="color:#40a070">0</span> <span style="color:#666">-</span> <span style="color:#007020;font-weight:bold">cast</span><span style="color:#666">(</span><span style="color:#902000">void</span><span style="color:#666">*)</span> <span style="color:#40a070">0</span><span style="color:#666">);</span>
+
+<span style="color:#007020;font-weight:bold">alias</span> noreturn <span style="color:#666">=</span> typeof<span style="color:#666">(*</span><span style="color:#007020;font-weight:bold">null</span><span style="color:#666">);</span>
+
+<span style="color:#007020;font-weight:bold">static</span> <span style="color:#06287e">if</span> <span style="color:#666">((</span><span style="color:#902000">void</span><span style="color:#666">*).</span><span style="color:#4070a0">sizeof</span> <span style="color:#666">==</span> <span style="color:#40a070">8</span><span style="color:#666">)</span> <span style="color:#666">{</span>
+    <span style="color:#007020;font-weight:bold">alias</span> uintptr <span style="color:#666">=</span> <span style="color:#902000">ulong</span><span style="color:#666">;</span>
+<span style="color:#666">}</span> <span style="color:#007020;font-weight:bold">else</span> <span style="color:#007020;font-weight:bold">static</span> <span style="color:#06287e">if</span> <span style="color:#666">((</span><span style="color:#902000">void</span><span style="color:#666">*).</span><span style="color:#4070a0">sizeof</span> <span style="color:#666">==</span> <span style="color:#40a070">4</span><span style="color:#666">)</span> <span style="color:#666">{</span>
+    <span style="color:#007020;font-weight:bold">alias</span> uintptr <span style="color:#666">=</span> <span style="color:#902000">uint</span><span style="color:#666">;</span>
+<span style="color:#666">}</span> <span style="color:#007020;font-weight:bold">else</span> <span style="color:#666">{</span>
+    <span style="color:#007020;font-weight:bold">static</span> <span style="color:#06287e">assert</span><span style="color:#666">(</span><span style="color:#40a070">0</span><span style="color:#666">,</span> <span style="color:#4070a0">&#34;pointer size must be 4 or 8 bytes&#34;</span><span style="color:#666">);</span>
+<span style="color:#666">}</span>
+</code></pre></div><h1 id="writing-to-the-uart-device">Writing to the UART device</h1>
+<p>Most systems have a UART device. Generally how this works is that you write a
+byte to a special place in memory<sup id="fnref:5"><a href="#fn:5" class="footnote-ref" role="doc-noteref">5</a></sup>, and that byte will be transmitted using the
+UART protocol over some pins on the board. In order to read the bytes with your
+host computer you need a UART to USB adapter plugged into your host, and then
+you can read from the corresponding device file (usually <code>/dev/ttyUSB0</code>) on the
+host computer. Today we&rsquo;ll just be simulating our bare-metal code in QEMU, so
+you don&rsquo;t need to have a special adapter. QEMU will emulate a UART device and
+print out the bytes written to its transmit register.</p>
+<h2 id="enabling-volatile-loadsstores">Enabling volatile loads/stores</h2>
+<p>When writing to device memory it is important to ensure that the compiler does
+not remove our loads/stores. For example, if a device is located at
+<code>0x10000000</code>, we might write directly to that address by casting the integer to
+a pointer. To the compiler, it just looks like we are writing to random
+addresses, which might be undefined behavior or result in dead code (e.g., if
+we never read the value back, the compiler may determine that it can eliminate
+the write). We need to inform the compiler that these reads/writes of device
+memory must be preserved and cannot be optimized out. D uses the
+<code>volatileStore</code> and <code>volatileLoad</code> intrinsics for this.</p>
+<p>We can define these in our <code>object.d</code>:</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-d" data-lang="d"><span style="color:#007020;font-weight:bold">pragma</span><span style="color:#666">(</span>LDC_intrinsic<span style="color:#666">,</span> <span style="color:#4070a0">&#34;ldc.bitop.vld&#34;</span><span style="color:#666">)</span> <span style="color:#902000">ubyte</span> <span style="color:#06287e">volatileLoad</span><span style="color:#666">(</span><span style="color:#902000">ubyte</span><span style="color:#666">*</span> ptr<span style="color:#666">);</span>
+<span style="color:#007020;font-weight:bold">pragma</span><span style="color:#666">(</span>LDC_intrinsic<span style="color:#666">,</span> <span style="color:#4070a0">&#34;ldc.bitop.vld&#34;</span><span style="color:#666">)</span> <span style="color:#902000">ushort</span> <span style="color:#06287e">volatileLoad</span><span style="color:#666">(</span><span style="color:#902000">ushort</span><span style="color:#666">*</span> ptr<span style="color:#666">);</span>
+<span style="color:#007020;font-weight:bold">pragma</span><span style="color:#666">(</span>LDC_intrinsic<span style="color:#666">,</span> <span style="color:#4070a0">&#34;ldc.bitop.vld&#34;</span><span style="color:#666">)</span> <span style="color:#902000">uint</span> <span style="color:#06287e">volatileLoad</span><span style="color:#666">(</span><span style="color:#902000">uint</span><span style="color:#666">*</span> ptr<span style="color:#666">);</span>
+<span style="color:#007020;font-weight:bold">pragma</span><span style="color:#666">(</span>LDC_intrinsic<span style="color:#666">,</span> <span style="color:#4070a0">&#34;ldc.bitop.vld&#34;</span><span style="color:#666">)</span> <span style="color:#902000">ulong</span> <span style="color:#06287e">volatileLoad</span><span style="color:#666">(</span><span style="color:#902000">ulong</span><span style="color:#666">*</span> ptr<span style="color:#666">);</span>
+<span style="color:#007020;font-weight:bold">pragma</span><span style="color:#666">(</span>LDC_intrinsic<span style="color:#666">,</span> <span style="color:#4070a0">&#34;ldc.bitop.vst&#34;</span><span style="color:#666">)</span> <span style="color:#902000">void</span> <span style="color:#06287e">volatileStore</span><span style="color:#666">(</span><span style="color:#902000">ubyte</span><span style="color:#666">*</span> ptr<span style="color:#666">,</span> <span style="color:#902000">ubyte</span> value<span style="color:#666">);</span>
+<span style="color:#007020;font-weight:bold">pragma</span><span style="color:#666">(</span>LDC_intrinsic<span style="color:#666">,</span> <span style="color:#4070a0">&#34;ldc.bitop.vst&#34;</span><span style="color:#666">)</span> <span style="color:#902000">void</span> <span style="color:#06287e">volatileStore</span><span style="color:#666">(</span><span style="color:#902000">ushort</span><span style="color:#666">*</span> ptr<span style="color:#666">,</span> <span style="color:#902000">ushort</span> value<span style="color:#666">);</span>
+<span style="color:#007020;font-weight:bold">pragma</span><span style="color:#666">(</span>LDC_intrinsic<span style="color:#666">,</span> <span style="color:#4070a0">&#34;ldc.bitop.vst&#34;</span><span style="color:#666">)</span> <span style="color:#902000">void</span> <span style="color:#06287e">volatileStore</span><span style="color:#666">(</span><span style="color:#902000">uint</span><span style="color:#666">*</span> ptr<span style="color:#666">,</span> <span style="color:#902000">uint</span> value<span style="color:#666">);</span>
+<span style="color:#007020;font-weight:bold">pragma</span><span style="color:#666">(</span>LDC_intrinsic<span style="color:#666">,</span> <span style="color:#4070a0">&#34;ldc.bitop.vst&#34;</span><span style="color:#666">)</span> <span style="color:#902000">void</span> <span style="color:#06287e">volatileStore</span><span style="color:#666">(</span><span style="color:#902000">ulong</span><span style="color:#666">*</span> ptr<span style="color:#666">,</span> <span style="color:#902000">ulong</span> value<span style="color:#666">);</span>
+</code></pre></div><h2 id="controlling-the-uart">Controlling the UART</h2>
+<p>With that set up, let&rsquo;s figure out where QEMU&rsquo;s UART device is located in
+memory so we can write to it.</p>
+<p>The QEMU <code>virt</code> machine defines a number of virtual devices, one of which is a
+UART device. Looking through the QEMU device tree again in <code>virt.dts</code>, you&rsquo;ll
+see the following:</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-txt" data-lang="txt">uart@10000000 {
+    interrupts = &lt;0x0a&gt;;
+    interrupt-parent = &lt;0x03&gt;;
+    clock-frequency = &lt;0x384000&gt;;
+    reg = &lt;0x00 0x10000000 0x00 0x100&gt;;
+    compatible = &#34;ns16550a&#34;;
+};
+</code></pre></div><p>This says that a ns16550a UART device exists at address <code>0x10000000</code>.</p>
+<p>On real hardware the UART would need to be properly initialized by writing some
+memory-mapped configuration registers (for setting up the baud rate and other
+options). However the QEMU device does not require initialization. It emulates
+an ns16550a device, and writing to its transmit register is enough to cause a
+byte to be written over the UART (which appears on the console when simulating
+with QEMU). The transmit register for the ns16550a is the first mapped register,
+so it is located at <code>0x10000000</code>.</p>
+<p>In <code>uart.d</code>:</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-d" data-lang="d"><span style="color:#007020;font-weight:bold">module</span> <span style="color:#0e84b5;font-weight:bold">uart</span><span style="color:#666">;</span>
+
+<span style="color:#007020;font-weight:bold">struct</span> <span style="color:#06287e">Ns16650a</span><span style="color:#666">(</span><span style="color:#902000">ubyte</span><span style="color:#666">*</span> base<span style="color:#666">)</span> <span style="color:#666">{</span>
+    <span style="color:#007020;font-weight:bold">static</span> <span style="color:#902000">void</span> <span style="color:#06287e">tx</span><span style="color:#666">(</span><span style="color:#902000">ubyte</span> b<span style="color:#666">)</span> <span style="color:#666">{</span>
+        volatileStore<span style="color:#666">(</span>base<span style="color:#666">,</span> b<span style="color:#666">);</span>
+    <span style="color:#666">}</span>
+<span style="color:#666">}</span>
+
+<span style="color:#007020;font-weight:bold">alias</span> Uart <span style="color:#666">=</span> Ns16650a<span style="color:#666">!(</span><span style="color:#007020;font-weight:bold">cast</span><span style="color:#666">(</span><span style="color:#902000">ubyte</span><span style="color:#666">*)</span> <span style="color:#40a070">0x10000000</span><span style="color:#666">);</span>
+</code></pre></div><p>Now in <code>kmain</code>, we can test the UART.</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-d" data-lang="d"><span style="color:#007020;font-weight:bold">module</span> <span style="color:#0e84b5;font-weight:bold">main</span><span style="color:#666">;</span>
+
+<span style="color:#007020;font-weight:bold">import</span> <span style="color:#0e84b5;font-weight:bold">uart</span><span style="color:#666">;</span>
+
+<span style="color:#902000">void</span> <span style="color:#06287e">kmain</span><span style="color:#666">()</span> <span style="color:#666">{</span>
+    Uart<span style="color:#666">.</span><span style="color:#4070a0">tx</span><span style="color:#666">(</span><span style="color:#4070a0">&#39;h&#39;</span><span style="color:#666">);</span>
+    Uart<span style="color:#666">.</span><span style="color:#4070a0">tx</span><span style="color:#666">(</span><span style="color:#4070a0">&#39;i&#39;</span><span style="color:#666">);</span>
+    Uart<span style="color:#666">.</span><span style="color:#4070a0">tx</span><span style="color:#666">(</span><span style="color:#4070a0">&#39;\n&#39;</span><span style="color:#666">);</span>
+<span style="color:#666">}</span>
+</code></pre></div><div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-txt" data-lang="txt">$ make prog.bin
+$ qemu-system-riscv64 -nographic -bios none -machine virt -kernel prog.bin
+hi!
+</code></pre></div><p>Press <code>Ctrl-A</code> <code>Ctrl-x</code> to quit QEMU (the program will enter an infinite loop
+after returning from <code>kmain</code>).</p>
+<h1 id="making-a-simple-print-function">Making a simple print function</h1>
+<p>Now we can just wrap the <code>Uart.tx</code> function up with a <code>println</code> function and
+we&rsquo;ll have a bare-metal <code>Hello world!</code> in no time.</p>
+<p>In <code>object.d</code>:</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-d" data-lang="d"><span style="color:#007020;font-weight:bold">import</span> <span style="color:#0e84b5;font-weight:bold">uart</span><span style="color:#666">;</span>
+
+<span style="color:#902000">void</span> <span style="color:#06287e">printElem</span><span style="color:#666">(</span><span style="color:#902000">char</span> c<span style="color:#666">)</span> <span style="color:#666">{</span>
+    Uart<span style="color:#666">.</span><span style="color:#4070a0">tx</span><span style="color:#666">(</span>c<span style="color:#666">);</span>
+<span style="color:#666">}</span>
+
+<span style="color:#902000">void</span> <span style="color:#06287e">printElem</span><span style="color:#666">(</span><span style="color:#902000">string</span> s<span style="color:#666">)</span> <span style="color:#666">{</span>
+    <span style="color:#007020;font-weight:bold">foreach</span> <span style="color:#666">(</span>c<span style="color:#666">;</span> s<span style="color:#666">)</span> <span style="color:#666">{</span>
+        printElem<span style="color:#666">(</span>c<span style="color:#666">);</span>
+    <span style="color:#666">}</span>
+<span style="color:#666">}</span>
+
+<span style="color:#902000">void</span> <span style="color:#06287e">print</span><span style="color:#666">(</span>Args<span style="color:#666">...)(</span>Args args<span style="color:#666">)</span> <span style="color:#666">{</span>
+    <span style="color:#007020;font-weight:bold">foreach</span> <span style="color:#666">(</span>arg<span style="color:#666">;</span> args<span style="color:#666">)</span> <span style="color:#666">{</span>
+        printElem<span style="color:#666">(</span>arg<span style="color:#666">);</span>
+    <span style="color:#666">}</span>
+<span style="color:#666">}</span>
+
+<span style="color:#902000">void</span> <span style="color:#06287e">println</span><span style="color:#666">(</span>Args<span style="color:#666">...)(</span>Args args<span style="color:#666">)</span> <span style="color:#666">{</span>
+    print<span style="color:#666">(</span>args<span style="color:#666">,</span> <span style="color:#4070a0">&#39;\n&#39;</span><span style="color:#666">);</span>
+<span style="color:#666">}</span>
+</code></pre></div><p>And in <code>main.d</code>:</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-d" data-lang="d"><span style="color:#902000">void</span> <span style="color:#06287e">kmain</span><span style="color:#666">()</span> <span style="color:#666">{</span>
+    println<span style="color:#666">(</span><span style="color:#4070a0">&#34;Hello world!&#34;</span><span style="color:#666">);</span>
+<span style="color:#666">}</span>
+</code></pre></div><div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-txt" data-lang="txt">$ make prog.bin
+$ qemu-system-riscv64 -nographic -bios none -machine virt -kernel prog.bin
+Hello world!
+</code></pre></div><p>There you have it, (simulated) bare-metal hello world!</p>
+<h1 id="bonus-content">Bonus content</h1>
+<h2 id="adding-support-for-assertions-and-bounds-checking">Adding support for assertions and bounds-checking</h2>
+<p>If you try to use a D assert expression, you might notice that the linking step fails:</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-txt" data-lang="txt">riscv64-unknown-elf-ld: dstart.o: in function `_D6dstart5kmainFZv&#39;:
+dstart.d:(.text+0x3c): undefined reference to `__assert&#39;
+</code></pre></div><p>It is looking for an <code>__assert</code><sup id="fnref:6"><a href="#fn:6" class="footnote-ref" role="doc-noteref">6</a></sup> function, so let&rsquo;s create one in the <code>object.d</code> file:</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-d" data-lang="d">size_t <span style="color:#06287e">strlen</span><span style="color:#666">(</span><span style="color:#007020;font-weight:bold">const</span><span style="color:#666">(</span><span style="color:#902000">char</span><span style="color:#666">)*</span> s<span style="color:#666">)</span> <span style="color:#666">{</span>
+    size_t n<span style="color:#666">;</span>
+    <span style="color:#007020;font-weight:bold">for</span> <span style="color:#666">(</span>n <span style="color:#666">=</span> <span style="color:#40a070">0</span><span style="color:#666">;</span> <span style="color:#666">*</span>s <span style="color:#666">!=</span> <span style="color:#4070a0">&#39;\0&#39;</span><span style="color:#666">;</span> <span style="color:#666">++</span>s<span style="color:#666">)</span> <span style="color:#666">{</span>
+        <span style="color:#666">++</span>n<span style="color:#666">;</span>
+    <span style="color:#666">}</span>
+    <span style="color:#007020;font-weight:bold">return</span> n<span style="color:#666">;</span>
+<span style="color:#666">}</span>
+
+extern <span style="color:#666">(</span>C<span style="color:#666">)</span> noreturn <span style="color:#06287e">__assert</span><span style="color:#666">(</span><span style="color:#007020;font-weight:bold">const</span><span style="color:#666">(</span><span style="color:#902000">char</span><span style="color:#666">)*</span> msg<span style="color:#666">,</span> <span style="color:#007020;font-weight:bold">const</span><span style="color:#666">(</span><span style="color:#902000">char</span><span style="color:#666">)*</span> file<span style="color:#666">,</span> <span style="color:#902000">int</span> line<span style="color:#666">)</span> <span style="color:#666">{</span>
+    <span style="color:#60a0b0;font-style:italic">// convert a char pointer into a bounded string with the [0 .. length] syntax
+</span><span style="color:#60a0b0;font-style:italic"></span>    <span style="color:#902000">string</span> smsg <span style="color:#666">=</span> <span style="color:#007020;font-weight:bold">cast</span><span style="color:#666">(</span><span style="color:#902000">string</span><span style="color:#666">)</span> msg<span style="color:#666">[</span><span style="color:#40a070">0</span> <span style="color:#666">..</span> strlen<span style="color:#666">(</span>msg<span style="color:#666">)];</span>
+    <span style="color:#902000">string</span> sfile <span style="color:#666">=</span> <span style="color:#007020;font-weight:bold">cast</span><span style="color:#666">(</span><span style="color:#902000">string</span><span style="color:#666">)</span> file<span style="color:#666">[</span><span style="color:#40a070">0</span> <span style="color:#666">..</span> strlen<span style="color:#666">(</span>file<span style="color:#666">)];</span>
+    println<span style="color:#666">(</span><span style="color:#4070a0">&#34;fatal error: &#34;</span><span style="color:#666">,</span> sfile<span style="color:#666">,</span> <span style="color:#4070a0">&#34;: &#34;</span><span style="color:#666">,</span> smsg<span style="color:#666">);</span>
+    <span style="color:#007020;font-weight:bold">while</span> <span style="color:#666">(</span><span style="color:#40a070">1</span><span style="color:#666">)</span> <span style="color:#666">{}</span>
+<span style="color:#666">}</span>
+</code></pre></div><p>Now you can use <code>assert</code> statements!</p>
+<p>D also supports bounds-checking, and internally the compiler will also call
+<code>__assert</code> when a bounds check fails. This means we also have working bounds
+checks now.</p>
+<p>Try this in <code>main.d</code>:</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-d" data-lang="d"><span style="color:#902000">void</span> <span style="color:#06287e">kmain</span><span style="color:#666">()</span> <span style="color:#666">{</span>
+    <span style="color:#902000">char</span><span style="color:#666">[</span><span style="color:#40a070">10</span><span style="color:#666">]</span> array<span style="color:#666">;</span>
+    <span style="color:#902000">int</span> x <span style="color:#666">=</span> <span style="color:#40a070">12</span><span style="color:#666">;</span>
+    println<span style="color:#666">(</span>array<span style="color:#666">[</span>x<span style="color:#666">]);</span>
+<span style="color:#666">}</span>
+</code></pre></div><p>Running it gives</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-txt" data-lang="txt">fatal error: main.d: array index out of bounds
+</code></pre></div><p>Bounds-checked arrays!</p>
+<p>This code doesn&rsquo;t print the line number because that requires converting an
+<code>int</code> to a <code>string</code> &ndash; something left as an exercise to the reader.</p>
+<h2 id="enabling-linker-relaxation">Enabling linker relaxation</h2>
+<p><a href="https://www.sifive.com/blog/all-aboard-part-3-linker-relaxation-in-riscv-toolchain">Linker
+relaxation</a>
+is an optimization in the RISC-V toolchain that allows globals to be accessed
+through the global pointer (stored in the <code>gp</code> register). This value is a
+pointer to somewhere in the data section, which allows instructions to load
+globals by directly offsetting from <code>gp</code>, instead of constructing the
+address of the global from scratch (which may require multiple instructions on
+RISC-V).</p>
+<p>To enable linker relaxation we have to do three things:</p>
+<ol>
+<li>Modify the linkerscript so that it defines a symbol for the global pointer.</li>
+<li>Load the <code>gp</code> register with this value in the <code>_start</code> function.</li>
+<li>Enable linker relaxation in our compiler.</li>
+</ol>
+<p>To modify the linkerscript we just add the following at the beginning of the
+<code>.rodata</code> section definition:</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-txt" data-lang="txt">__global_pointer$ = . + 0x800;
+</code></pre></div><p>This sets up the <code>__global_pointer$</code> symbol (a special symbol that the
+linker assumes is stored in <code>gp</code>) to point <code>0x800</code> bytes into the data
+segment (RISC-V instructions can load/store values offset up to <code>0x800</code> bytes
+from the <code>gp</code> register in either direction in one instruction). This allows
+offsets from <code>gp</code> to cover most/all of static data.</p>
+<p>Next we add to <code>_start</code>:</p>
+<div class="highlight"><pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-txt" data-lang="txt">.option push
+.option norelax
+la gp, __global_pointer$
+.option pop
+</code></pre></div><p>We need to temporarily enable the <code>norelax</code> option, otherwise the assembler
+will optimize this to <code>mv gp, gp</code>.</p>
+<p>Finally, we can remove the <code>-mno-relax</code> flag from the <code>riscv64-unknown-elf-as</code>
+invocation, and add <code>-mattr=+m,+a,+c,+relax</code> to the <code>ldc2</code> invocation to enable
+linker relaxation in the compiler.</p>
+<h2 id="removing-unused-functions">Removing unused functions</h2>
+<p>If you take a look at the disassembly of the program (<code>make prog.list</code>), you
+might notice there are definitions for functions that are never called. This is
+because those functions have been inlined, but the definitions were not
+removed. Functions/globals in D are always exported in the object file, even if
+they are marked <code>private</code> (I&rsquo;m not really sure why). Luckily modern linkers can
+be pretty smart and it&rsquo;s easy to have the linker remove these unused functions.
+Pass <code>--function-sections</code> and <code>--data-sections</code> to LDC to have it put each
+function/global in its own section (still within <code>.text</code>, <code>.data</code> etc.). Now if
+you pass the <code>--gc-sections</code> flag to the linker, it will remove any
+unreferenced sections (hence removing any unused functions/globals). With these
+flags I got the final &ldquo;hello world&rdquo; binary down to 149 bytes.</p>
+<p>This is a basic form of optimization performed by the linker. There are more
+advanced forms of link-time optimization (LTO), which I won&rsquo;t discuss in much
+detail. If you pass <code>-flto=thin</code> or <code>-flto=full</code> to LDC, the object files that
+it generates will be LLVM bitcode. Then you will need to invoke the linker with
+the LLVMgold linker plugin (or use LLD) so that it can read these files. With
+this method, the linker will apply full compiler optimizations across object
+files.</p>
+<!-- ## Why does the Makefile build one object file per source file? -->
+<!--  -->
+<!-- The Makefile for the project builds one object file per D source file. We could -->
+<!-- also pass all the D files to the compiler at once, and generate one object file -->
+<!-- from the result. That would probably produce a better-optimized binary (since -->
+<!-- we aren't using LTO). However it is not as good for incremental rebuilds, since -->
+<!-- we end up recompiling everything from scratch every time. -->
+<h2 id="thread-local-storage-and-globals">Thread-local storage and globals</h2>
+<p>Globals are thread-local by default in D. That means if you declare a global as
+<code>int x;</code> then whenever you access <code>x</code>, the compiler will do so through the
+system&rsquo;s thread pointer (on RISC-V this is stored in the <code>tp</code> register). That
+means if you use a thread-local variable, you had better make sure <code>tp</code>
+points to a block of memory where <code>x</code> is located, and if you have multiple
+threads each thread&rsquo;s <code>tp</code> should point to a distinct thread-local block (each thread
+will have its own private copy of <code>x</code>). I won&rsquo;t explain in detail how to set that up here,
+but briefly, you&rsquo;ll need to initialize the <code>.tdata</code> and <code>.tbss</code> sections for each thread
+in <code>dstart</code>, and load <code>tp</code> with a pointer to the current thread&rsquo;s local <code>.tdata</code>.</p>
+<p>To make a global shared across all threads, you need to mark it as <code>immutable</code>
+or <code>shared</code>. A variable marked as <code>shared</code> imposes some limits, and basically
+forces you to mark everything it touches as <code>shared</code>. You can still read/write
+it without checks, but at least you should be able to easily know if you are
+accessing a shared variable (and manually verify you have the appropriate
+synchronization). In a future version of D it is likely that directly accessing
+a shared variable will be disallowed, except through atomic intrinsics. If you
+have a lock to protect the variable, then you will need to cast away the
+<code>shared</code> qualifier manually, which isn&rsquo;t perfect but forces the programmer to
+acknowledge the possible unsafety of accessing the shared global. You can
+always use the <code>__gshared</code> attribute as an escape hatch, which makes the global
+shared but does not make any changes to the type (no limitations). A global
+marked as <code>__gshared</code> is equivalent to a C global.</p>
+<h1 id="final-remarks">Final remarks</h1>
+<p>I hope this provided a simple introduction to D for bare-metal programming, and
+that you might consider using D instead of C in some future project as a
+result.  This post has only covered running in a simulated environment. In a
+future post I&rsquo;ll show how to write bare-metal code for the <a href="https://www.kickstarter.com/projects/starfive/visionfive-2">VisionFive
+2</a><sup id="fnref:7"><a href="#fn:7" class="footnote-ref" role="doc-noteref">7</a></sup>, a recently
+released RISC-V SBC produced by StarFive. Stay tuned!</p>
+<p>If you want to see a larger example, I am developing an operating system called
+<a href="https://github.com/zyedidia/multiplix">Multiplix</a> in D. It has support for
+RISC-V and AArch64, and targets the VisionFive, VisionFive 2, Raspberry Pi 3,
+and Raspberry Pi 4 (and likely more boards in the future).
+Check it out! It is currently heavily in-progress, but I plan to make a post
+about it when it is further along.</p>
+<p>The code from this post is available in my
+<a href="https://github.com/zyedidia/blog-code">blog-code</a> repository.</p>
+<section class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1" role="doc-endnote">
+<p>Also sometimes called DasBetterC. Sehr gut! <a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:2" role="doc-endnote">
+<p>This varies by board and is documented in the technical reference manual
+(if you&rsquo;re lucky). On the VisionFive it is <code>0x80000000</code> and on the VisionFive
+2 it is <code>0x40000000</code>. <a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:3" role="doc-endnote">
+<p>We have an additional flag, <code>--makedeps</code>, which asks LDC to output
+a dependency file that captures dependencies between D source files that
+import each other. This is similar to the <code>-MMD</code> flag in C compilers. <a href="#fnref:3" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:4" role="doc-endnote">
+<p>Actually we haven&rsquo;t set up thread-local storage, so we can&rsquo;t use D&rsquo;s TLS
+globals yet. We&rsquo;ll also need additional runtime callbacks for things like
+assertions. <a href="#fnref:4" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:5" role="doc-endnote">
+<p>This special memory address is sometimes called a device register, or
+memory-mapped register. Accessing devices in this way is usually called
+memory-mapped I/O (MMIO). <a href="#fnref:5" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:6" role="doc-endnote">
+<p>If you are using GDC, you&rsquo;ll need to create a variety of assertion
+failure functions named <code>_d_assert_msg</code>, <code>_d_assert</code>, <code>_d_arraybounds</code>, &hellip; <a href="#fnref:6" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:7" role="doc-endnote">
+<p>Specs: quad-core SiFive U74 at 1.5 GHz, with an additional S7 monitor
+core and 8 GB of RAM. <a href="#fnref:7" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</section>
+
+</main>
+
+  <footer>
+  <script data-goatcounter="https://18947513.goatcounter.com/count" async src="https://zyedidia.github.io/data/count.js"></script>
+
+  
+  <hr/>
+  <a href="https://zyedidia.github.io">Zachary Yedidia</a> | <a href="https://github.com/zyedidia">Github</a>
+  
+  </footer>
+  </body>
+</html>
+

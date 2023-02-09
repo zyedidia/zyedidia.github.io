@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Posts on Zachary Yedidia&#39;s blog</title>
-    <link>https://zyedidia.github.io/blog/posts/</link>
-    <description>Recent content in Posts on Zachary Yedidia&#39;s blog</description>
+    <title>riscv on Zachary Yedidia&#39;s blog</title>
+    <link>https://zyedidia.github.io/blog/categories/riscv/</link>
+    <description>Recent content in riscv on Zachary Yedidia&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Wed, 08 Feb 2023 00:00:00 +0000</lastBuildDate><atom:link href="https://zyedidia.github.io/blog/posts/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Wed, 08 Feb 2023 00:00:00 +0000</lastBuildDate><atom:link href="https://zyedidia.github.io/blog/categories/riscv/index.xml" rel="self" type="application/rss+xml" />
     <item>
       <title>Writing a bare-metal RISC-V application in D</title>
       <link>https://zyedidia.github.io/blog/posts/1-d-baremetal/</link>
@@ -15,15 +15,6 @@
       <guid>https://zyedidia.github.io/blog/posts/1-d-baremetal/</guid>
       <description>This post will show you how to use D to write a bare-metal &amp;ldquo;Hello world&amp;rdquo; program that targets the RISC-V QEMU simulator. In a future blog post we&amp;rsquo;ll build on this to target actual hardware: the VisionFive 2 SBC.
 Why D? Recently I&amp;rsquo;ve been writing bare-metal code in C, and I&amp;rsquo;ve become a bit frustrated with the lack of features that C provides. I started searching for a good replacement, and revisited D (a language I used for a project a few years ago).</description>
-    </item>
-    
-    <item>
-      <title>Starting a blog</title>
-      <link>https://zyedidia.github.io/blog/posts/0-starting-a-blog/</link>
-      <pubDate>Tue, 07 Feb 2023 00:00:00 +0000</pubDate>
-      
-      <guid>https://zyedidia.github.io/blog/posts/0-starting-a-blog/</guid>
-      <description>Hi there! I&amp;rsquo;ve set up a blog. I&amp;rsquo;ll probably write about things I&amp;rsquo;m working on or find interesting. Lately that includes things such as OS development, the D programming language, symbolic execution, hardware design and verification (with Chisel), build systems, text editors, and more. Stay tuned!</description>
     </item>
     
   </channel>
