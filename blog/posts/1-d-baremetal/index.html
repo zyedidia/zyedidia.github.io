@@ -88,8 +88,8 @@ have D as the base choice for any project where I would otherwise use C.</p>
 <h1 id="installing-the-toolchain">Installing the toolchain</h1>
 <p>Now that I&rsquo;ve told you about my reasons for choosing D, let&rsquo;s try using it to
 write a bare-metal application that targets RISC-V. If you want to follow
-along, the first step is to download the toolchain. You&rsquo;ll need three different
-components:</p>
+along, the first step is to download the toolchain (the following tools should
+work on Linux or MacOS). You&rsquo;ll need three different components:</p>
 <ol>
 <li>LDC (the LLVM-based D compiler). Can be downloaded from
 <a href="https://github.com/ldc-developers/ldc/releases/tag/v1.30.0">GitHub</a>. Please
@@ -181,11 +181,13 @@ writable data, and the BSS.</p>
 </span></span><span style="display:flex;"><span>        . = ALIGN(8);
 </span></span><span style="display:flex;"><span>        *(.rodata*)
 </span></span><span style="display:flex;"><span>        *(.srodata*)
+</span></span><span style="display:flex;"><span>        . = ALIGN(8);
 </span></span><span style="display:flex;"><span>    }
 </span></span><span style="display:flex;"><span>    .data : { 
 </span></span><span style="display:flex;"><span>        . = ALIGN(8);
 </span></span><span style="display:flex;"><span>        *(.sdata*)
 </span></span><span style="display:flex;"><span>        *(.data*)
+</span></span><span style="display:flex;"><span>        . = ALIGN(8);
 </span></span><span style="display:flex;"><span>    } 
 </span></span><span style="display:flex;"><span>    .bss : {
 </span></span><span style="display:flex;"><span>        . = ALIGN(8);

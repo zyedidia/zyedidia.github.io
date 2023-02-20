@@ -6,7 +6,16 @@
     <description>Recent content in d on Zachary Yedidia&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Wed, 08 Feb 2023 00:00:00 +0000</lastBuildDate><atom:link href="https://zyedidia.github.io/blog/categories/d/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Sun, 19 Feb 2023 00:00:00 +0000</lastBuildDate><atom:link href="https://zyedidia.github.io/blog/categories/d/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Bare-metal development on the VisionFive 2 with D</title>
+      <link>https://zyedidia.github.io/blog/posts/2-baremetal-visionfive/</link>
+      <pubDate>Sun, 19 Feb 2023 00:00:00 +0000</pubDate>
+      
+      <guid>https://zyedidia.github.io/blog/posts/2-baremetal-visionfive/</guid>
+      <description>This is a follow-up to my previous post about writing bare-metal RISC-V programs using D. This time we&amp;rsquo;ll get our code running on actual hardware. We&amp;rsquo;ll be using the VisionFive 2 board, a recently released RISC-V SBC with 4 U74 performance cores (SiFive U74) clocked at 1.5 GHz and 1 monitor core (SiFive S7). The main difference between the U74 cores and the S7 core is that the S7 core does not have an MMU, and therefore cannot support virtual memory &amp;ndash; but that won&amp;rsquo;t be relevant to us today.</description>
+    </item>
+    
     <item>
       <title>Writing a bare-metal RISC-V application in D</title>
       <link>https://zyedidia.github.io/blog/posts/1-d-baremetal/</link>

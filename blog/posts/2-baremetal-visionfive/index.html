@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bare-metal development on the VisionFive 2 with D | Zachary Yedidia&#39;s blog</title>
+    <link rel="stylesheet" href="/blog/css/style.css" />
+    <link rel="stylesheet" href="/blog/css/fonts.css" />
+    
+  </head>
+
+  <body>
+    <nav>
+    <ul class="menu">
+      
+      <li><a href="/blog">Blog</a></li>
+      
+      <li><a href="https://zyedidia.github.io">About Me</a></li>
+      
+      <li><a href="/blog/categories/">Categories</a></li>
+      
+      <li><a href="/blog/index.xml">RSS Feed</a></li>
+      
+    </ul>
+    <hr/>
+    </nav>
+
+<div class="article-meta">
+<h1><span class="title">Bare-metal development on the VisionFive 2 with D</span></h1>
+
+<h2 class="date">2023/02/19</h2>
+<p class="terms">
+  
+  
+  Categories: <a href="/categories/d">d</a> <a href="/categories/osdev">osdev</a> <a href="/categories/riscv">riscv</a> 
+  
+  
+  
+  
+</p>
+</div>
+
+<main>
+<p>This is a follow-up to my previous <a href="../1-d-baremetal">post</a> about writing
+bare-metal RISC-V programs using D. This time we&rsquo;ll get our code running on
+actual hardware. We&rsquo;ll be using the VisionFive 2 board, a recently released
+RISC-V SBC with 4 U74 performance cores (SiFive U74) clocked at 1.5 GHz and 1
+monitor core (SiFive S7). The main difference between the U74 cores and the S7
+core is that the S7 core does not have an MMU, and therefore cannot support
+virtual memory &ndash; but that won&rsquo;t be relevant to us today.</p>
+<p>We&rsquo;ll figure out how to get our code running on the VisionFive 2 bare-metal,
+and then implement small UART and GPIO drivers to print messages over a serial
+connection and blink an LED.</p>
+<p>The code for this post is available in my
+<a href="https://github.com/zyedidia/blog-code">blog-code</a> repository.</p>
+<h1 id="setup">Setup</h1>
+<p>If you want to follow along, you&rsquo;ll need the following hardware:</p>
+<ul>
+<li>A VisionFive 2 board (with a USB-C cable to power it).</li>
+<li>A USB to UART converter.</li>
+<li>An LED.</li>
+</ul>
+<p align="center">
+<img src="../img/2/vf2-hardware.jpg" width="500" />
+</p>
+<p>You&rsquo;ll also need the following software:</p>
+<ul>
+<li>LDC 1.30 and a GNU toolchain (same as last time).</li>
+<li>The <code>sx</code> program for loading files over XMODEM.</li>
+<li>The <code>mkimage</code> tool from U-boot for creating a firmware image file.</li>
+<li>A few tools I have written to make things easier. You can get them from my
+<a href="https://github.com/zyedidia/blog-code">blog-code</a> repository.
+<ul>
+<li><code>rduart</code>: a program that reads from a serial device on your host computer.</li>
+<li><code>vf2-imager</code>: a program that converts a <code>.bin</code> file to a VisionFive 2
+firmware image.</li>
+<li><code>vf2</code>: a program that sends a VisionFive 2 firmware image to the board
+and automatically navigates the menus to upload it correctly.</li>
+</ul>
+</li>
+</ul>
+<p>You&rsquo;ll need Go to install the custom tools I&rsquo;ve written. To build them, run <code>go build</code> (or <code>go install</code> to install to your <code>GOBIN</code>) in each tool directory.</p>
+<h1 id="installing-custom-firmware">Installing custom firmware</h1>
+<p>Before writing your own code, it&rsquo;s a good idea to check that you can properly
+install a new firmware image on the VisionFive 2. <strong>Note</strong>: this will overwrite
+your previous firmware. If you want to go back to running Linux, see the end of
+this article for instructions for re-installing the default firmware.</p>
+<p>Here is the final <code>.bin</code> file you should be able to build after this post:
+<a href="../files/2/prog.bin">prog.bin</a>.</p>
+<p>To install this binary file, we need to create the firmware image file from it.
+This can be done with my <code>vf2-imager</code> tool, which just invokes U-boot&rsquo;s
+<code>mkimage</code> tool with the right inputs:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>$ vf2-imager -i prog.bin -o prog.img
+</span></span></code></pre></div><p>Now we need to upload that image file. The <a href="https://www.scs.stanford.edu/~zyedidia/docs/visionfive/visionfive2_qsg.pdf">VisionFive 2 quick start
+guide</a>
+has a section that describes how to recover the bootloader (firmware) in the
+case that your board&rsquo;s flash has been overwritten or corrupted (Appendix 4.4).
+This describes how to re-upload the default firmware, but we can follow these
+instructions to upload custom firmware. First, connect the USB-UART converter
+to the board. You can refer to the pinout diagram from the datasheet:</p>
+<p align="center">
+<img src="../img/2/vf2-pinout.png" width="400" />
+</p>
+<p>Connect ground to ground, TX to RX, and RX to TX. Leave power unconnected since
+the board will be powered via the USB-C cable.</p>
+<p align="center">
+<img src="../img/2/vf2-usb-uart.jpg" width="500" />
+</p>
+<p>Once you have the USB-UART converter set up, and the board is powered on by
+plugging in the USB-C cable.</p>
+<ol>
+<li>Flip the boot-mode switches on the board. These switches are really small,
+so I usually use the legs of the LED to help flip them.</li>
+<li>Restart the board (unplug and re-plug the USB-C cable, or press the restart
+button on the side of the board).</li>
+<li>Send the <code>jh7110-recovery.bin</code> file using <code>sx</code>. This is a program
+distributed by StarFive that loads firmware, so we are sending it so that it
+can run on the board and load the actual firmware.</li>
+<li>Once the transfer is complete a menu will appear asking what kind of
+firmware update is desired. We want option 2: <code>update fw_verify/uboot in flash</code>.</li>
+<li>Send the <code>vf2-hello.img</code> file using <code>sx</code>.</li>
+<li>Flip the switches back and restart the board.</li>
+</ol>
+<p>That&rsquo;s a lot of steps! Luckily I&rsquo;ve written a program called <code>vf2</code> that does it
+all automatically for you (except flipping the switches). So you just run</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>$ vf2 prog.img
+</span></span></code></pre></div><p>and wait for it to finish. Once complete, flip the switches, start running
+<code>rduart</code> to read from the UART, and restart the board.  Hopefully you&rsquo;ll see
+&ldquo;blink: on&rdquo;/&ldquo;blink: off&rdquo; appear on the screen (and if you plug your LED into
+pin 61, the LED should blink).</p>
+<h1 id="a-new-entrypoint">A new entrypoint</h1>
+<p>Now let&rsquo;s start writing code. We can pick up where we left off from last post.
+One difference between the VisionFive 2 and QEMU is that the entrypoint on the
+VisionFive 2 is <code>0x40000000</code> instead of <code>0x80000000</code>, so we have to change that
+address in the <code>link.ld</code> file.</p>
+<h1 id="disabling-the-additional-cores">Disabling the additional cores</h1>
+<p>The VisionFive 2 has five cores in total, and they all jump to the CPU
+entrypoint concurrently. For this simple example, we are going to disable all
+cores except one so that we don&rsquo;t have to deal with writing parallel-safe code.
+Each core&rsquo;s ID is stored in the <code>mhartid</code> CSR. The S7 monitor core is ID 0, and
+the four U7 application cores are IDs 1-4. Let&rsquo;s boot up with only core 1 by changing
+<code>start.s</code>:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-asm" data-lang="asm"><span style="display:flex;"><span><span style="color:#4070a0">.section</span> <span style="color:#4070a0">&#34;.text.boot&#34;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#4070a0">.globl</span> <span style="color:#60add5">_start</span>
+</span></span><span style="display:flex;"><span><span style="color:#002070;font-weight:bold">_start:</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#06287e">csrr</span> <span style="color:#60add5">t0</span>, <span style="color:#60add5">mhartid</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#06287e">li</span> <span style="color:#60add5">t1</span>, <span style="color:#40a070">1</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#06287e">bne</span> <span style="color:#60add5">t0</span>, <span style="color:#60add5">t1</span>, <span style="color:#60add5">_hlt</span> <span style="color:#60a0b0;font-style:italic"># branch to _hlt if mhartid != 1
+</span></span></span><span style="display:flex;"><span><span style="color:#60a0b0;font-style:italic"></span>    <span style="color:#06287e">la</span> <span style="color:#60add5">sp</span>, <span style="color:#60add5">_stack_start</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#06287e">call</span> <span style="color:#60add5">dstart</span>
+</span></span><span style="display:flex;"><span><span style="color:#002070;font-weight:bold">_hlt:</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#06287e">wfi</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#06287e">j</span> <span style="color:#60add5">_hlt</span>
+</span></span></code></pre></div><h1 id="blinking-an-led">Blinking an LED</h1>
+<p>In order to blink an LED we have to be able to delay for a certain amount of
+time and toggle a GPIO pin. The simplest way to delay is just to execute a
+large number of <code>nop</code> instructions. We are going to use the slightly more
+complex method of accessing the system time register so that we can reliably
+wait for a precise amount of time.</p>
+<p>While most of the VisionFive 2&rsquo;s device are undocumented, there is a Linux
+device tree for the board, so we can look at that to get some information about
+the devices on the board and their locations in the memory map. This will be
+useful for writing simple GPIO and UART drivers. You can find the device tree
+here:
+<a href="https://www.scs.stanford.edu/~zyedidia/docs/visionfive/jh7110.dtsi">jh7110.dtsi</a>.</p>
+<h2 id="accessing-the-system-timer">Accessing the system timer</h2>
+<p>The VisionFive 2 uses a SiFive U74 core complex. This has a SiFive core-local
+interrupt controller (CLINT) located at address <code>0x200_0000</code>. Within the CLINT
+there is the memory-mapped <code>mtime</code> register &ndash; a 64-bit register that
+increments at a fixed frequency. The RISC-V specification says that the
+implementation must provide a way to determine the frequency of the timer, but
+on the VisionFive 2 I haven&rsquo;t found any way (doesn&rsquo;t seem to be documented?).
+Via experimentation, I estimate that the timer runs at 4.8 MHz. The <code>mtime</code>
+register is mapped at an offset of <code>0xBFF8</code> within the CLINT. See the <a href="https://www.scs.stanford.edu/~zyedidia/docs/sifive/sifive-u74mc.pdf">SiFive
+manual</a>
+for the documentation.</p>
+<p>We can make a simple timer module that uses this CSR to delay for a certain
+number of microseconds.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">module</span> <span style="color:#0e84b5;font-weight:bold">timer</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">struct</span> <span style="color:#0e84b5;font-weight:bold">Timer</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">static</span> <span style="color:#902000">ulong</span> <span style="color:#06287e">mtime</span><span style="color:#666">()</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#007020;font-weight:bold">return</span> volatileLoad<span style="color:#666">(</span><span style="color:#007020;font-weight:bold">cast</span><span style="color:#666">(</span><span style="color:#902000">ulong</span><span style="color:#666">*)</span> <span style="color:#666">(</span><span style="color:#40a070">0x200_0000</span> <span style="color:#666">+</span> <span style="color:#40a070">0xBFF8</span><span style="color:#666">));</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">enum</span> mtime_freq <span style="color:#666">=</span> <span style="color:#40a070">4_800_000</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">static</span> <span style="color:#902000">void</span> <span style="color:#06287e">delay_time</span><span style="color:#666">(</span><span style="color:#902000">ulong</span> t<span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#902000">ulong</span> rb <span style="color:#666">=</span> mtime<span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#007020;font-weight:bold">while</span> <span style="color:#666">(</span><span style="color:#007020;font-weight:bold">true</span><span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#902000">ulong</span> ra <span style="color:#666">=</span> mtime<span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#007020;font-weight:bold">if</span> <span style="color:#666">((</span>ra <span style="color:#666">-</span> rb<span style="color:#666">)</span> <span style="color:#666">&gt;=</span> t<span style="color:#666">)</span>
+</span></span><span style="display:flex;"><span>                <span style="color:#007020;font-weight:bold">break</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">static</span> <span style="color:#902000">void</span> <span style="color:#06287e">delay_us</span><span style="color:#666">(</span><span style="color:#902000">ulong</span> us<span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>        delay_time<span style="color:#666">(</span>us <span style="color:#666">*</span> mtime_freq <span style="color:#666">/</span> <span style="color:#40a070">1_000_000</span><span style="color:#666">);</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#666">}</span>
+</span></span></code></pre></div><p>Note for those unfamiliar with D: this code uses some of D&rsquo;s uniform function
+call syntax (UFCS), to call the <code>mtime</code> function without using parentheses.</p>
+<h2 id="gpio-driver">GPIO driver</h2>
+<p>Toggling a GPIO pin requires controlling the GPIO device. The VisionFive 2 is
+not very well documented at the moment, and I cannot find any documentation for
+the GPIO device. However, there is a Linux kernel driver
+(<a href="https://lore.kernel.org/lkml/20230209143702.44408-4-hal.feng@starfivetech.com/t/">patch</a>),
+and I&rsquo;ve pulled out just the part for turning a pin on or off.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">module</span> <span style="color:#0e84b5;font-weight:bold">gpio</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">struct</span> <span style="color:#06287e">Jh7110Gpio</span><span style="color:#666">(</span>uintptr base<span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">enum</span> doen_reg <span style="color:#666">=</span> <span style="color:#007020;font-weight:bold">cast</span><span style="color:#666">(</span><span style="color:#902000">uint</span><span style="color:#666">*)(</span>base <span style="color:#666">+</span> <span style="color:#40a070">0x0</span><span style="color:#666">);</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">enum</span> dout_reg <span style="color:#666">=</span> <span style="color:#007020;font-weight:bold">cast</span><span style="color:#666">(</span><span style="color:#902000">uint</span><span style="color:#666">*)(</span>base <span style="color:#666">+</span> <span style="color:#40a070">0x40</span><span style="color:#666">);</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">enum</span> dout_mask <span style="color:#666">=</span> <span style="color:#40a070">0x7f</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">enum</span> doen_mask <span style="color:#666">=</span> <span style="color:#40a070">0x3f</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">static</span> <span style="color:#902000">void</span> <span style="color:#06287e">set</span><span style="color:#666">(</span><span style="color:#902000">uint</span> pin<span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#007020;font-weight:bold">if</span> <span style="color:#666">(</span>pin <span style="color:#666">&gt;</span> <span style="color:#40a070">63</span><span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#007020;font-weight:bold">return</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#902000">uint</span> offset <span style="color:#666">=</span> pin <span style="color:#666">/</span> <span style="color:#40a070">4</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#902000">uint</span> shift <span style="color:#666">=</span> <span style="color:#40a070">8</span> <span style="color:#666">*</span> <span style="color:#666">(</span>pin <span style="color:#666">%</span> <span style="color:#40a070">4</span><span style="color:#666">);</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#902000">uint</span> dout <span style="color:#666">=</span> volatileLoad<span style="color:#666">(&amp;</span>dout_reg<span style="color:#666">[</span>offset<span style="color:#666">]);</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#902000">uint</span> doen <span style="color:#666">=</span> volatileLoad<span style="color:#666">(&amp;</span>doen_reg<span style="color:#666">[</span>offset<span style="color:#666">]);</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        volatileStore<span style="color:#666">(&amp;</span>dout_reg<span style="color:#666">[</span>offset<span style="color:#666">],</span> dout <span style="color:#666">&amp;</span> <span style="color:#666">~(</span>dout_mask <span style="color:#666">&lt;&lt;</span> shift<span style="color:#666">)</span> <span style="color:#666">|</span> <span style="color:#666">(</span><span style="color:#40a070">1</span> <span style="color:#666">&lt;&lt;</span> shift<span style="color:#666">));</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#60a0b0;font-style:italic">// enable is active low
+</span></span></span><span style="display:flex;"><span><span style="color:#60a0b0;font-style:italic"></span>        volatileStore<span style="color:#666">(&amp;</span>doen_reg<span style="color:#666">[</span>offset<span style="color:#666">],</span> doen <span style="color:#666">&amp;</span> <span style="color:#666">~(</span>doen_mask <span style="color:#666">&lt;&lt;</span> shift<span style="color:#666">));</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">static</span> <span style="color:#902000">void</span> <span style="color:#06287e">clear</span><span style="color:#666">(</span><span style="color:#902000">uint</span> pin<span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#007020;font-weight:bold">if</span> <span style="color:#666">(</span>pin <span style="color:#666">&gt;</span> <span style="color:#40a070">63</span><span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>            <span style="color:#007020;font-weight:bold">return</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#902000">uint</span> offset <span style="color:#666">=</span> pin <span style="color:#666">/</span> <span style="color:#40a070">4</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#902000">uint</span> shift <span style="color:#666">=</span> <span style="color:#40a070">8</span> <span style="color:#666">*</span> <span style="color:#666">(</span>pin <span style="color:#666">%</span> <span style="color:#40a070">4</span><span style="color:#666">);</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>        <span style="color:#902000">uint</span> dout <span style="color:#666">=</span> volatileLoad<span style="color:#666">(&amp;</span>dout_reg<span style="color:#666">[</span>offset<span style="color:#666">]);</span>
+</span></span><span style="display:flex;"><span>        volatileStore<span style="color:#666">(&amp;</span>dout_reg<span style="color:#666">[</span>offset<span style="color:#666">],</span> dout <span style="color:#666">&amp;</span> <span style="color:#666">~(</span>dout_mask <span style="color:#666">&lt;&lt;</span> shift<span style="color:#666">));</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">static</span> <span style="color:#902000">void</span> <span style="color:#06287e">write</span><span style="color:#666">(</span><span style="color:#902000">uint</span> pin<span style="color:#666">,</span> <span style="color:#902000">bool</span> value<span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#007020;font-weight:bold">if</span> <span style="color:#666">(</span>value<span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>            set<span style="color:#666">(</span>pin<span style="color:#666">);</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#666">}</span> <span style="color:#007020;font-weight:bold">else</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>            clear<span style="color:#666">(</span>pin<span style="color:#666">);</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">alias</span> Gpio <span style="color:#666">=</span> Jh7110Gpio<span style="color:#666">!(</span><span style="color:#40a070">0x13040000</span><span style="color:#666">);</span>
+</span></span></code></pre></div><p>By looking at the JH7110 device tree, we can see that the GPIO device is
+located at address <code>0x13040000</code>:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>gpio: gpio@13040000 {
+</span></span><span style="display:flex;"><span>    compatible = &#34;starfive,jh7110-sys-pinctrl&#34;;
+</span></span><span style="display:flex;"><span>    reg = &lt;0x0 0x13040000 0x0 0x10000&gt;;
+</span></span><span style="display:flex;"><span>    ...
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>So let&rsquo;s add:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">alias</span> Gpio <span style="color:#666">=</span> Jh7110Gpio<span style="color:#666">!(</span><span style="color:#40a070">0x13040000</span><span style="color:#666">);</span>
+</span></span></code></pre></div><h2 id="blink">Blink!</h2>
+<p>Now we have everything necessary to toggle a pin in <code>kmain</code>:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">module</span> <span style="color:#0e84b5;font-weight:bold">main</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">import</span> <span style="color:#0e84b5;font-weight:bold">gpio</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">import</span> <span style="color:#0e84b5;font-weight:bold">timer</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#902000">void</span> <span style="color:#06287e">kmain</span><span style="color:#666">()</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#902000">bool</span> val <span style="color:#666">=</span> <span style="color:#007020;font-weight:bold">true</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">enum</span> pin <span style="color:#666">=</span> <span style="color:#40a070">61</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">while</span> <span style="color:#666">(</span><span style="color:#007020;font-weight:bold">true</span><span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>        Gpio<span style="color:#666">.</span><span style="color:#4070a0">write</span><span style="color:#666">(</span>pin<span style="color:#666">,</span> val<span style="color:#666">);</span>
+</span></span><span style="display:flex;"><span>        val <span style="color:#666">=</span> <span style="color:#666">!</span>val<span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#60a0b0;font-style:italic">// delay 500 ms
+</span></span></span><span style="display:flex;"><span><span style="color:#60a0b0;font-style:italic"></span>        Timer<span style="color:#666">.</span><span style="color:#4070a0">delay_us</span><span style="color:#666">(</span><span style="color:#40a070">500</span> <span style="color:#666">*</span> <span style="color:#40a070">1000</span><span style="color:#666">);</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#666">}</span>
+</span></span></code></pre></div><p>Build this into a <code>.bin</code> file, and use <code>vf2-imager</code> and <code>vf2</code> to flash it
+onto the VisionFive 2.</p>
+<p>Now connect an LED to GPIO61 (and the other end to GND), and you should see
+it blinking!</p>
+<p align="center">
+<img src="../img/2/vf2-blink.jpg" width="500" />
+</p>
+<h1 id="a-small-uart-driver">A small UART driver</h1>
+<p>Most devices on the VisionFive 2, including the UART, are not documented very
+well. Luckily the Linux device tree for it is quite fleshed out, and has an
+entry for the UART.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>uart0: serial@10000000 {
+</span></span><span style="display:flex;"><span>    compatible = &#34;snps,dw-apb-uart&#34;;
+</span></span><span style="display:flex;"><span>    reg = &lt;0x0 0x10000000 0x0 0x10000&gt;;
+</span></span><span style="display:flex;"><span>    ...
+</span></span><span style="display:flex;"><span>};
+</span></span></code></pre></div><p>The VisionFive 2 UART is apparently compatible with the Synopsys DW8250 UART
+device, which does have a manual available online<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup>. Just like with the
+default QEMU UART from last post, the transmit register on this UART device is
+the first register in the list. It also turns out that the firmware initializes
+the device to run at a baud rate of 115200, so we don&rsquo;t even have to figure out
+how to configure the clocks. Once difference between the QEMU UART and the real
+UART is that it takes some time for the data to be transmitted out of the
+transmit register, so before writing to the transmit register we have to wait
+for it to be empty. The &ldquo;line status register&rdquo; can report this information.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">module</span> <span style="color:#0e84b5;font-weight:bold">uart</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">struct</span> <span style="color:#06287e">Dw8250</span><span style="color:#666">(</span>uintptr base<span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#60a0b0;font-style:italic">// Line status register
+</span></span></span><span style="display:flex;"><span><span style="color:#60a0b0;font-style:italic"></span>    <span style="color:#007020;font-weight:bold">static</span> <span style="color:#902000">uint</span> <span style="color:#06287e">lsr</span><span style="color:#666">()</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#007020;font-weight:bold">enum</span> off <span style="color:#666">=</span> base <span style="color:#666">+</span> <span style="color:#40a070">0x14</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#007020;font-weight:bold">return</span> volatileLoad<span style="color:#666">(</span><span style="color:#007020;font-weight:bold">cast</span><span style="color:#666">(</span><span style="color:#902000">uint</span><span style="color:#666">*)</span> off<span style="color:#666">);</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#60a0b0;font-style:italic">// Transmit holding register
+</span></span></span><span style="display:flex;"><span><span style="color:#60a0b0;font-style:italic"></span>    <span style="color:#007020;font-weight:bold">static</span> <span style="color:#902000">void</span> <span style="color:#06287e">thr</span><span style="color:#666">(</span><span style="color:#902000">uint</span> b<span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#007020;font-weight:bold">enum</span> off <span style="color:#666">=</span> base <span style="color:#666">+</span> <span style="color:#40a070">0x0</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>        volatileStore<span style="color:#666">(</span><span style="color:#007020;font-weight:bold">cast</span><span style="color:#666">(</span><span style="color:#902000">uint</span><span style="color:#666">*)</span> off<span style="color:#666">,</span> b<span style="color:#666">);</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">enum</span> Lsr <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>        thre <span style="color:#666">=</span> <span style="color:#40a070">5</span><span style="color:#666">,</span> <span style="color:#60a0b0;font-style:italic">// bit 5 of LSR is set if the THR is empty
+</span></span></span><span style="display:flex;"><span><span style="color:#60a0b0;font-style:italic"></span>    <span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">static</span> <span style="color:#902000">void</span> <span style="color:#06287e">tx</span><span style="color:#666">(</span><span style="color:#902000">ubyte</span> b<span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#60a0b0;font-style:italic">// wait for THR to be empty
+</span></span></span><span style="display:flex;"><span><span style="color:#60a0b0;font-style:italic"></span>        <span style="color:#007020;font-weight:bold">while</span> <span style="color:#666">(((</span>lsr <span style="color:#666">&gt;&gt;</span> Lsr<span style="color:#666">.</span><span style="color:#4070a0">thre</span><span style="color:#666">)</span> <span style="color:#666">&amp;</span> <span style="color:#40a070">1</span><span style="color:#666">)</span> <span style="color:#666">!=</span> <span style="color:#40a070">1</span><span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span>        thr <span style="color:#666">=</span> b<span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">alias</span> Uart <span style="color:#666">=</span> Dw8250<span style="color:#666">!(</span><span style="color:#40a070">0x10000000</span><span style="color:#666">);</span>
+</span></span></code></pre></div><p>Note for those unfamiliar with D: this code is using UFCS where <code>lsr</code> is a call
+to <code>lsr()</code> and <code>thr = b</code> is a call to <code>thr(b)</code>.</p>
+<h2 id="printing-over-the-uart">Printing over the UART</h2>
+<p>Now we can add to our blink program:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">module</span> <span style="color:#0e84b5;font-weight:bold">main</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">import</span> <span style="color:#0e84b5;font-weight:bold">gpio</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">import</span> <span style="color:#0e84b5;font-weight:bold">timer</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#902000">void</span> <span style="color:#06287e">kmain</span><span style="color:#666">()</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#902000">bool</span> val <span style="color:#666">=</span> <span style="color:#007020;font-weight:bold">true</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">enum</span> pin <span style="color:#666">=</span> <span style="color:#40a070">61</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">while</span> <span style="color:#666">(</span><span style="color:#007020;font-weight:bold">true</span><span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#60a0b0;font-style:italic">// We can re-use the println implementation from last post
+</span></span></span><span style="display:flex;"><span><span style="color:#60a0b0;font-style:italic"></span>        println<span style="color:#666">(</span><span style="color:#4070a0">&#34;blink: &#34;</span><span style="color:#666">,</span> val <span style="color:#666">?</span> <span style="color:#4070a0">&#34;on&#34;</span> <span style="color:#666">:</span> <span style="color:#4070a0">&#34;off&#34;</span><span style="color:#666">);</span>
+</span></span><span style="display:flex;"><span>        Gpio<span style="color:#666">.</span><span style="color:#4070a0">write</span><span style="color:#666">(</span>pin<span style="color:#666">,</span> val<span style="color:#666">);</span>
+</span></span><span style="display:flex;"><span>        val <span style="color:#666">=</span> <span style="color:#666">!</span>val<span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>        <span style="color:#60a0b0;font-style:italic">// delay 500 ms
+</span></span></span><span style="display:flex;"><span><span style="color:#60a0b0;font-style:italic"></span>        Timer<span style="color:#666">.</span><span style="color:#4070a0">delay_us</span><span style="color:#666">(</span><span style="color:#40a070">500</span> <span style="color:#666">*</span> <span style="color:#40a070">1000</span><span style="color:#666">);</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#666">}</span>
+</span></span><span style="display:flex;"><span><span style="color:#666">}</span>
+</span></span></code></pre></div><p>If you run <code>rduart</code>, you should see the text printed over the serial
+connection.</p>
+<h1 id="re-installing-the-default-firmware">Re-installing the default firmware</h1>
+<p>Re-installing the default firmware is quite easy. You just need to get the
+default <code>.img</code> file and flash it using the <code>vf2</code> tool.</p>
+<p>The default firmware image is <code>visionfive2_fw_payload.img</code> and can be
+downloaded from
+<a href="https://github.com/starfive-tech/VisionFive2/releases/tag/VF2_v2.8.0">starfive-tech/VisionFive2</a>.</p>
+<p>Flashing the firmware will take roughly 10 minutes.</p>
+<h1 id="final-remarks">Final remarks</h1>
+<p>It&rsquo;s always fun getting code running bare-metal on actual hardware. The next
+step might be to implement a UART bootloader so you don&rsquo;t have to use the <code>vf2</code>
+tool (and flip the switches) to upload new programs. You can upload the
+bootloader once and then have it poll for a new program to load over UART.
+Another next step might be to enable more hardware features, such as the MMU
+(for virtual memory) or interrupts. See
+<a href="https://github.com/zyedidia/multiplix">Multiplix</a> for a small example kernel
+that runs on the VisionFive 2.</p>
+<p>When running bare-metal you can also make really effective micro-benchmarks &ndash;
+for example determining exactly how many cycles it takes to execute a system
+call instruction(<code>ecall</code> in RISC-V)<sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup>. I might make a blog post about that in
+the future.</p>
+<p>Unfortunately the devices on the VisionFive 2 are not documented very well, so
+making controllers for the more advanced devices on the board seems
+impractical. I&rsquo;m hoping the HiFive Pro will have better documentation, but it
+doesn&rsquo;t seem very likely. Nevertheless, UART and GPIO devices are enough to
+make some interesting programs.</p>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>Search for the DW_apb_uart databook.&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:2">
+<p>I&rsquo;ve done some testing and it seems to take 8 cycles.&#160;<a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+</main>
+
+  <footer>
+  <script data-goatcounter="https://18947513.goatcounter.com/count" async src="https://zyedidia.github.io/data/count.js"></script>
+
+  
+  <hr/>
+  <a href="https://zyedidia.github.io">Zachary Yedidia</a> | <a href="https://github.com/zyedidia">Github</a>
+  
+  </footer>
+  </body>
+</html>
+
