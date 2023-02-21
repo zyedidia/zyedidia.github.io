@@ -44,7 +44,7 @@
 <p>This is a follow-up to my previous <a href="../1-d-baremetal">post</a> about writing
 bare-metal RISC-V programs using D. This time we&rsquo;ll get our code running on
 actual hardware. We&rsquo;ll be using the VisionFive 2 board, a recently released
-RISC-V SBC with 4 U74 performance cores (SiFive U74) clocked at 1.5 GHz and 1
+RISC-V SBC with 4 application cores (SiFive U74) clocked at 1.5 GHz and 1
 monitor core (SiFive S7). The main difference between the U74 cores and the S7
 core is that the S7 core does not have an MMU, and therefore cannot support
 virtual memory &ndash; but that won&rsquo;t be relevant to us today.</p>
@@ -107,7 +107,9 @@ the board will be powered via the USB-C cable.</p>
 <img src="../img/2/vf2-usb-uart.jpg" width="500" />
 </p>
 <p>Once you have the USB-UART converter set up, and the board is powered on by
-plugging in the USB-C cable.</p>
+plugging in the USB-C cable, you can install new firmware. Here&rsquo;s an overview
+of the steps. You don&rsquo;t have to go through them manually because I&rsquo;ve written
+a tool to do them automatically, but it&rsquo;s good to know what they are.</p>
 <ol>
 <li>Flip the boot-mode switches on the board. These switches are really small,
 so I usually use the legs of the LED to help flip them.</li>
@@ -132,7 +134,8 @@ pin 61, the LED should blink).</p>
 <p>Now let&rsquo;s start writing code. We can pick up where we left off from last post.
 One difference between the VisionFive 2 and QEMU is that the entrypoint on the
 VisionFive 2 is <code>0x40000000</code> instead of <code>0x80000000</code>, so we have to change that
-address in the <code>link.ld</code> file.</p>
+address in the <code>link.ld</code> file (<a href="https://github.com/zyedidia/blog-code/blob/master/2-baremetal-visionfive/link.ld">full
+<code>link.ld</code></a>).</p>
 <h1 id="disabling-the-additional-cores">Disabling the additional cores</h1>
 <p>The VisionFive 2 has five cores in total, and they all jump to the CPU
 entrypoint concurrently. For this simple example, we are going to disable all
