@@ -207,6 +207,17 @@ not very well documented at the moment, and I cannot find any documentation for
 the GPIO device. However, there is a Linux kernel driver
 (<a href="https://lore.kernel.org/lkml/20230209143702.44408-4-hal.feng@starfivetech.com/t/">patch</a>),
 and I&rsquo;ve pulled out just the part for turning a pin on or off.</p>
+<p>The GPIO device on the VisionFive 2 has 16 4-byte enable registers at offset
+<code>0x0</code> and 16 4-byte output value registers at offset <code>0x40</code>. Each register
+contains the enable/output value for 4 pins, split across the 4 bytes of the
+register. This allows control of 64 pins in total. The enables are active-low.
+To turn on GPIO pin <code>n</code> you have to:</p>
+<ul>
+<li>Enable the pin: find register <code>en[n / 4]</code> and within it clear the bottom 6
+bits of byte <code>n % 4</code>.</li>
+<li>Turn on the pin&rsquo;s output: find register <code>out[n / 4]</code>, and within it set the
+bottom 7 bits of byte <code>n % 4</code> to <code>0b0000001</code>.</li>
+</ul>
 <div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">module</span> <span style="color:#0e84b5;font-weight:bold">gpio</span><span style="color:#666">;</span>
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">struct</span> <span style="color:#06287e">Jh7110Gpio</span><span style="color:#666">(</span>uintptr base<span style="color:#666">)</span> <span style="color:#666">{</span>
