@@ -77,7 +77,7 @@ situations).</p>
 <li>Some memory safety protections with <code>@safe</code>.</li>
 <li>A fairly comprehensive and readable <a href="https://dlang.org/spec/spec.html">online specification</a>.</li>
 <li>An active discord channel with people that answer my questions in minutes.</li>
-<li>Both an LLVM-based compiler (LDC) and an GNU compiler (GDC), which is officially
+<li>Both an LLVM-based compiler (LDC) and a GNU compiler (GDC), which is officially
 part of the GCC project.
 <ul>
 <li>And these compilers both export roughly the same flags and intrinsics as
@@ -94,8 +94,8 @@ write a bare-metal application that targets RISC-V. If you want to follow
 along, the first step is to download the toolchain (the following tools should
 work on Linux or MacOS). You&rsquo;ll need three different components:</p>
 <ol>
-<li>LDC (the LLVM-based D compiler). Can be downloaded from
-<a href="https://github.com/ldc-developers/ldc/releases/tag/v1.30.0">GitHub</a>. Please
+<li>LDC 1.30 (the LLVM-based D compiler). Can be downloaded from
+<a href="https://github.com/ldc-developers/ldc/releases/tag/v1.30.0">GitHub</a>. Make sure to
 use version 1.30<sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup>.</li>
 <li>A <code>riscv64-unknown-elf</code> GNU toolchain. Can be downloaded from
 SiFive&rsquo;s <a href="https://github.com/sifive/freedom-tools/releases">Freedom Tools
@@ -108,7 +108,7 @@ usually available as part of your system&rsquo;s QEMU package.</li>
 <p>We&rsquo;ll be using LDC since it ships with the ability to target <code>riscv64</code>.  I have
 used GDC for bare-metal development as well, but it requires building a
 toolchain from source since nobody ships pre-built <code>riscv64-unknown-elf-gdc</code>
-binaries. We&rsquo;ll use the GNU toolchain for assembling, linking, and for other
+binaries<sup id="fnref:3"><a href="#fn:3" class="footnote-ref" role="doc-noteref">3</a></sup>. We&rsquo;ll use the GNU toolchain for assembling, linking, and for other
 tools like <code>objcopy</code> and <code>objdump</code>, and QEMU for simulating the hardware.</p>
 <p>With these installed you should be able to run:</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>$ ldc2 --version
@@ -117,10 +117,13 @@ tools like <code>objcopy</code> and <code>objdump</code>, and QEMU for simulatin
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span>$ riscv64-unknown-elf-ld
 </span></span><span style="display:flex;"><span>riscv64-unknown-elf-ld: no input files
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>$ qemu-system-riscv64 -h
+</span></span><span style="display:flex;"><span>...
 </span></span></code></pre></div><h1 id="cpu-entrypoint">CPU entrypoint</h1>
 <p>We&rsquo;re writing bare-metal code, so there&rsquo;s no operating system, no console, no
 files &ndash; nothing. The CPU just starts executing instructions at a pre-specified
-address<sup id="fnref:3"><a href="#fn:3" class="footnote-ref" role="doc-noteref">3</a></sup> after performing some initial setup. We&rsquo;ll figure out what that
+address<sup id="fnref:4"><a href="#fn:4" class="footnote-ref" role="doc-noteref">4</a></sup> after performing some initial setup. We&rsquo;ll figure out what that
 address is later when we set up the linkerscript. For now we can just define
 the <code>_start</code> symbol as our entrypoint, and assume the linker will place the
 code at this label at the CPU entrypoint.</p>
@@ -255,7 +258,7 @@ register.  I explain it in more detail in the <a href="#enabling-linker-relaxati
 section</a>.</li>
 </ul>
 <p>It&rsquo;s going to get tedious to type out these commands repeatedly, so let&rsquo;s
-create a Makefile<sup id="fnref:4"><a href="#fn:4" class="footnote-ref" role="doc-noteref">4</a></sup> (or a <a href="https://github.com/zyedidia/knit">Knitfile</a> if you&rsquo;re
+create a Makefile<sup id="fnref:5"><a href="#fn:5" class="footnote-ref" role="doc-noteref">5</a></sup> (or a <a href="https://github.com/zyedidia/knit">Knitfile</a> if you&rsquo;re
 cool):</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-make" data-lang="make"><span style="display:flex;"><span><span style="color:#bb60d5">SRC</span><span style="color:#666">=</span><span style="color:#007020;font-weight:bold">$(</span>wildcard *.d<span style="color:#007020;font-weight:bold">)</span>
 </span></span><span style="display:flex;"><span><span style="color:#bb60d5">OBJ</span><span style="color:#666">=</span><span style="color:#007020;font-weight:bold">$(</span>SRC:.d<span style="color:#666">=</span>.o<span style="color:#007020;font-weight:bold">)</span>
@@ -314,7 +317,7 @@ still have a bit more work to do before we get output.</p>
 <code>extern</code> variables so that the linker symbols <code>_bss_start</code> and <code>_bss_end</code> are
 available to our D code. Then we can just loop from <code>_bss_start</code> to <code>_bss_end</code>
 and assign all the bytes in that range to zero. Once complete, our BSS is
-initialized and we can run arbitrary<sup id="fnref:5"><a href="#fn:5" class="footnote-ref" role="doc-noteref">5</a></sup> D code (using globals that may be
+initialized and we can run arbitrary<sup id="fnref:6"><a href="#fn:6" class="footnote-ref" role="doc-noteref">6</a></sup> D code (using globals that may be
 initialized to zero).</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span>extern <span style="color:#666">(</span>C<span style="color:#666">)</span> <span style="color:#666">{</span>
 </span></span><span style="display:flex;"><span>    extern <span style="color:#007020;font-weight:bold">__gshared</span> <span style="color:#902000">uint</span> _bss_start<span style="color:#666">,</span> _bss_end<span style="color:#666">;</span>
@@ -360,7 +363,7 @@ definition I like to use, which also defines <code>ptrdiff_t</code>, <code>noret
 </span></span><span style="display:flex;"><span><span style="color:#666">}</span>
 </span></span></code></pre></div><h1 id="writing-to-the-uart-device">Writing to the UART device</h1>
 <p>Most systems have a UART device. Generally how this works is that you write a
-byte to a special place in memory<sup id="fnref:6"><a href="#fn:6" class="footnote-ref" role="doc-noteref">6</a></sup>, and that byte will be transmitted using the
+byte to a special place in memory<sup id="fnref:7"><a href="#fn:7" class="footnote-ref" role="doc-noteref">7</a></sup>, and that byte will be transmitted using the
 UART protocol over some pins on the board. In order to read the bytes with your
 host computer you need a UART to USB adapter plugged into your host, and then
 you can read from the corresponding device file (usually <code>/dev/ttyUSB0</code>) on the
@@ -474,7 +477,7 @@ further steps.</p>
 <p>If you try to use a D assert expression, you might notice that the linking step fails:</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>riscv64-unknown-elf-ld: dstart.o: in function `_D6dstart5kmainFZv&#39;:
 </span></span><span style="display:flex;"><span>dstart.d:(.text+0x3c): undefined reference to `__assert&#39;
-</span></span></code></pre></div><p>It is looking for an <code>__assert</code><sup id="fnref:7"><a href="#fn:7" class="footnote-ref" role="doc-noteref">7</a></sup> function, so let&rsquo;s create one in the <code>object.d</code> file:</p>
+</span></span></code></pre></div><p>It is looking for an <code>__assert</code><sup id="fnref:8"><a href="#fn:8" class="footnote-ref" role="doc-noteref">8</a></sup> function, so let&rsquo;s create one in the <code>object.d</code> file:</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span>size_t <span style="color:#06287e">strlen</span><span style="color:#666">(</span><span style="color:#007020;font-weight:bold">const</span><span style="color:#666">(</span><span style="color:#902000">char</span><span style="color:#666">)*</span> s<span style="color:#666">)</span> <span style="color:#666">{</span>
 </span></span><span style="display:flex;"><span>    size_t n<span style="color:#666">;</span>
 </span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">for</span> <span style="color:#666">(</span>n <span style="color:#666">=</span> <span style="color:#40a070">0</span><span style="color:#666">;</span> <span style="color:#666">*</span>s <span style="color:#666">!=</span> <span style="color:#4070a0">&#39;\0&#39;</span><span style="color:#666">;</span> <span style="color:#666">++</span>s<span style="color:#666">)</span> <span style="color:#666">{</span>
@@ -549,7 +552,7 @@ Pass <code>--function-sections</code> and <code>--data-sections</code> to LDC to
 function/global in its own section (still within <code>.text</code>, <code>.data</code> etc.). Now if
 you pass the <code>--gc-sections</code> flag to the linker, it will remove any
 unreferenced sections (hence removing any unused functions/globals). With these
-flags I got the final &ldquo;hello world&rdquo; binary down to 149 bytes.</p>
+flags I got the final &ldquo;hello world&rdquo; binary down to 160 bytes.</p>
 <p>This is a basic form of optimization performed by the linker. There are more
 advanced forms of link-time optimization (LTO), which I won&rsquo;t discuss in much
 detail. If you pass <code>-flto=thin</code> or <code>-flto=full</code> to LDC, the object files that
@@ -592,8 +595,9 @@ marked as <code>__gshared</code> is equivalent to a C global.</p>
 that you might consider using D instead of C in some future project as a
 result.  This post has only covered running in a simulated environment. In a
 future post I&rsquo;ll show how to write bare-metal code for the <a href="https://www.kickstarter.com/projects/starfive/visionfive-2">VisionFive
-2</a><sup id="fnref:8"><a href="#fn:8" class="footnote-ref" role="doc-noteref">8</a></sup>, a recently
-released RISC-V SBC produced by StarFive. Stay tuned!</p>
+2</a><sup id="fnref:9"><a href="#fn:9" class="footnote-ref" role="doc-noteref">9</a></sup>, a recently
+released RISC-V SBC produced by StarFive. Stay tuned! (<a href="../2-baremetal-visionfive">now
+available</a>)</p>
 <p>If you want to see a larger example, I am developing an operating system called
 <a href="https://github.com/zyedidia/multiplix">Multiplix</a> in D. It has support for
 RISC-V and AArch64, and targets the VisionFive, VisionFive 2, Raspberry Pi 3,
@@ -613,32 +617,39 @@ about it when it is further along.</p>
 on master and the problem will be gone in 1.32.&#160;<a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
 </li>
 <li id="fn:3">
-<p>This varies by board and is documented in the technical reference manual
-(if you&rsquo;re lucky). On the VisionFive it is <code>0x80000000</code> and on the VisionFive
-2 it is <code>0x40000000</code>.&#160;<a href="#fnref:3" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+<p>I actually distribute some
+<a href="https://github.com/zyedidia/build-gdc/releases">here</a>. These are builds from
+the master branch of GCC 13. See the <code>gdc</code> branch in
+<a href="https://github.com/zyedidia/blog-code/tree/gdc">blog-code</a> for a version of
+this post&rsquo;s code that works with GDC instead of LDC.&#160;<a href="#fnref:3" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
 </li>
 <li id="fn:4">
-<p>We have an additional flag, <code>--makedeps</code>, which asks LDC to output
-a dependency file that captures dependencies between D source files that
-import each other. This is similar to the <code>-MMD</code> flag in C compilers.&#160;<a href="#fnref:4" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+<p>This varies by board and is documented in the technical reference manual
+(if you&rsquo;re lucky). On the VisionFive it is <code>0x80000000</code> and on the VisionFive
+2 it is <code>0x40000000</code>.&#160;<a href="#fnref:4" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
 </li>
 <li id="fn:5">
-<p>Actually we haven&rsquo;t set up thread-local storage, so we can&rsquo;t use D&rsquo;s TLS
-globals yet. We&rsquo;ll also need additional runtime callbacks for things like
-assertions.&#160;<a href="#fnref:5" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+<p>We have an additional flag, <code>--makedeps</code>, which asks LDC to output
+a dependency file that captures dependencies between D source files that
+import each other. This is similar to the <code>-MMD</code> flag in C compilers.&#160;<a href="#fnref:5" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
 </li>
 <li id="fn:6">
-<p>This special memory address is sometimes called a device register, or
-memory-mapped register. Accessing devices in this way is usually called
-memory-mapped I/O (MMIO).&#160;<a href="#fnref:6" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+<p>Actually we haven&rsquo;t set up thread-local storage, so we can&rsquo;t use D&rsquo;s TLS
+globals yet. We&rsquo;ll also need additional runtime callbacks for things like
+assertions.&#160;<a href="#fnref:6" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
 </li>
 <li id="fn:7">
-<p>If you are using GDC, you&rsquo;ll need to create a variety of assertion
-failure functions named <code>_d_assert_msg</code>, <code>_d_assert</code>, <code>_d_arraybounds</code>, &hellip;&#160;<a href="#fnref:7" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+<p>This special memory address is sometimes called a device register, or
+memory-mapped register. Accessing devices in this way is usually called
+memory-mapped I/O (MMIO).&#160;<a href="#fnref:7" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
 </li>
 <li id="fn:8">
+<p>If you are using GDC, you&rsquo;ll need to create a variety of assertion
+failure functions named <code>_d_assert_msg</code>, <code>_d_assert</code>, <code>_d_arraybounds</code>, &hellip;&#160;<a href="#fnref:8" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:9">
 <p>Specs: quad-core SiFive U74 at 1.5 GHz, with an additional S7 monitor
-core and 8 GB of RAM.&#160;<a href="#fnref:8" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+core and 8 GB of RAM.&#160;<a href="#fnref:9" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
 </li>
 </ol>
 </div>
