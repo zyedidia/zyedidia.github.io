@@ -52,7 +52,10 @@ virtual memory &ndash; but that won&rsquo;t be relevant to us today.</p>
 and then implement small UART and GPIO drivers to print messages over a serial
 connection and blink an LED.</p>
 <p>The code for this post is available in my
-<a href="https://github.com/zyedidia/blog-code">blog-code</a> repository.</p>
+<a href="https://github.com/zyedidia/blog-code">blog-code</a> repository. For a more
+complex example, see <a href="https://github.com/zyedidia/multiplix">Multiplix</a>, an
+operating system I am developing that runs on the VisionFive 2 (and Raspberry
+Pis).</p>
 <h1 id="setup">Setup</h1>
 <p>If you want to follow along, you&rsquo;ll need the following hardware:</p>
 <ul>
@@ -178,8 +181,8 @@ Via experimentation, I estimate that the timer runs at 4.8 MHz. The <code>mtime<
 register is mapped at an offset of <code>0xBFF8</code> within the CLINT. See the <a href="https://www.scs.stanford.edu/~zyedidia/docs/sifive/sifive-u74mc.pdf">SiFive
 manual</a>
 for the documentation.</p>
-<p>We can make a simple timer module that uses this CSR to delay for a certain
-number of microseconds.</p>
+<p>We can make a simple timer module that uses this memory-mapped timer to delay
+for a certain number of microseconds.</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">module</span> <span style="color:#0e84b5;font-weight:bold">timer</span><span style="color:#666">;</span>
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">struct</span> <span style="color:#0e84b5;font-weight:bold">Timer</span> <span style="color:#666">{</span>
@@ -317,7 +320,7 @@ device, which does have a manual available online<sup id="fnref:1"><a href="#fn:
 default QEMU UART from last post, the transmit register on this UART device is
 the first register in the list. It also turns out that the firmware initializes
 the device to run at a baud rate of 115200, so we don&rsquo;t even have to figure out
-how to configure the clocks. Once difference between the QEMU UART and the real
+how to configure the clocks. One difference between the QEMU UART and the real
 UART is that it takes some time for the data to be transmitted out of the
 transmit register, so before writing to the transmit register we have to wait
 for it to be empty. The &ldquo;line status register&rdquo; can report this information.</p>
