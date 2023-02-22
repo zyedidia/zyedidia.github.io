@@ -5,6 +5,14 @@ body {
   line-height: 1.5;
 }
 
+/* Fixes iOS font sizing anomaly */
+code {
+  text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
+}
+
 /* header and footer areas */
 .menu { padding: 0; }
 .menu li { display: inline-block; }
