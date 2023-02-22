@@ -297,8 +297,9 @@ located at address <code>0x13040000</code>:</p>
 </span></span><span style="display:flex;"><span><span style="color:#666">}</span>
 </span></span></code></pre></div><p>Build this into a <code>.bin</code> file, and use <code>vf2-imager</code> and <code>vf2</code> to flash it
 onto the VisionFive 2.</p>
-<p>Now connect an LED to GPIO61 (and the other end to GND), and you should see
-it blinking!</p>
+<p>Now connect an LED to GPIO61 (and the other end to GND), and you should see it
+blinking! (if it doesn&rsquo;t work, try flipping the ends of the LED &ndash; LEDs usually
+have a polarity)</p>
 <p align="center">
 <img src="../img/2/vf2-blink.jpg" width="500" />
 </p>
@@ -387,7 +388,7 @@ bootloader once and then have it poll for a new program to load over UART.
 Another next step might be to enable more hardware features, such as the MMU
 (for virtual memory) or interrupts. See
 <a href="https://github.com/zyedidia/multiplix">Multiplix</a> for a small example kernel
-that runs on the VisionFive 2.</p>
+that runs on the VisionFive 2 that I am developing.</p>
 <p>When running bare-metal you can also make really effective micro-benchmarks &ndash;
 for example determining exactly how many cycles it takes to execute a system
 call instruction(<code>ecall</code> in RISC-V)<sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup>. I might make a blog post about that in
