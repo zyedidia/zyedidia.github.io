@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>knit on Zachary Yedidia&#39;s blog</title>
+    <link>https://zyedidia.github.io/blog/categories/knit/</link>
+    <description>Recent content in knit on Zachary Yedidia&#39;s blog</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Wed, 22 Feb 2023 00:00:00 +0000</lastBuildDate><atom:link href="https://zyedidia.github.io/blog/categories/knit/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Knit: making a better Make</title>
+      <link>https://zyedidia.github.io/blog/posts/3-knit-better-make/</link>
+      <pubDate>Wed, 22 Feb 2023 00:00:00 +0000</pubDate>
+      
+      <guid>https://zyedidia.github.io/blog/posts/3-knit-better-make/</guid>
+      <description>This article is about a new build tool I&amp;rsquo;ve been working on called Knit. Check it out on GitHub!
+What&amp;rsquo;s wrong with Make? This might be surprising but I actually like Make overall. It has a concise syntax for declaring dependencies, and it doesn&amp;rsquo;t make any assumptions about the programs I am building. These are the two biggest factors I consider when looking for a replacement, and so far I haven&amp;rsquo;t found any build systems that manage to keep Make&amp;rsquo;s core simplicity while improving on it1 2 3.</description>
+    </item>
+    
+  </channel>
+</rss>
