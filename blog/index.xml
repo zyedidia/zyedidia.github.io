@@ -23,7 +23,7 @@ What&amp;rsquo;s wrong with Make? This might be surprising but I actually like M
       <pubDate>Sun, 19 Feb 2023 00:00:00 +0000</pubDate>
       
       <guid>https://zyedidia.github.io/blog/posts/2-baremetal-visionfive/</guid>
-      <description>This is a follow-up to my previous post about writing bare-metal RISC-V programs using D. This time we&amp;rsquo;ll get our code running on actual hardware. We&amp;rsquo;ll be using the VisionFive 2 board, a recently released RISC-V SBC with 4 application cores (SiFive U74) clocked at 1.5 GHz and 1 monitor core (SiFive S7). The main difference between the U74 cores and the S7 core is that the S7 core does not have an MMU, and therefore cannot support virtual memory &amp;ndash; but that won&amp;rsquo;t be relevant to us today.</description>
+      <description>This is a follow-up to my previous post about writing bare-metal RISC-V programs using D. This time we&amp;rsquo;ll get our code running on actual hardware. We&amp;rsquo;ll be using the VisionFive 2 board, a recently released RISC-V SBC with 4 application cores (SiFive U74) clocked at a maximum of 1.5 GHz1 and 1 monitor core (SiFive S7). The main difference between the U74 cores and the S7 core is that the S7 core does not have an MMU, and therefore cannot support virtual memory &amp;ndash; but that won&amp;rsquo;t be relevant to us today.</description>
     </item>
     
     <item>

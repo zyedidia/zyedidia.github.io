@@ -44,10 +44,11 @@
 <p>This is a follow-up to my previous <a href="../1-d-baremetal">post</a> about writing
 bare-metal RISC-V programs using D. This time we&rsquo;ll get our code running on
 actual hardware. We&rsquo;ll be using the VisionFive 2 board, a recently released
-RISC-V SBC with 4 application cores (SiFive U74) clocked at 1.5 GHz and 1
-monitor core (SiFive S7). The main difference between the U74 cores and the S7
-core is that the S7 core does not have an MMU, and therefore cannot support
-virtual memory &ndash; but that won&rsquo;t be relevant to us today.</p>
+RISC-V SBC with 4 application cores (SiFive U74) clocked at a maximum of 1.5
+GHz<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup> and 1 monitor core (SiFive S7). The main difference between the
+U74 cores and the S7 core is that the S7 core does not have an MMU, and
+therefore cannot support virtual memory &ndash; but that won&rsquo;t be relevant to us
+today.</p>
 <p>We&rsquo;ll figure out how to get our code running on the VisionFive 2 bare-metal,
 and then implement small UART and GPIO drivers to print messages over a serial
 connection and blink an LED.</p>
@@ -177,7 +178,10 @@ there is the memory-mapped <code>mtime</code> register &ndash; a 64-bit register
 increments at a fixed frequency. The RISC-V specification says that the
 implementation must provide a way to determine the frequency of the timer, but
 on the VisionFive 2 I haven&rsquo;t found any way (doesn&rsquo;t seem to be documented?).
-Via experimentation, I estimate that the timer runs at 4.8 MHz. The <code>mtime</code>
+Via experimentation, I estimate that the timer runs at 4.0 MHz (consistent with
+the Linux kernel
+<a href="https://patchwork.kernel.org/project/linux-riscv/patch/20230221024645.127922-20-hal.feng@starfivetech.com/">patch</a>).
+The <code>mtime</code>
 register is mapped at an offset of <code>0xBFF8</code> within the CLINT. See the <a href="https://www.scs.stanford.edu/~zyedidia/docs/sifive/sifive-u74mc.pdf">SiFive
 manual</a>
 for the documentation.</p>
@@ -190,7 +194,7 @@ for a certain number of microseconds.</p>
 </span></span><span style="display:flex;"><span>        <span style="color:#007020;font-weight:bold">return</span> volatileLoad<span style="color:#666">(</span><span style="color:#007020;font-weight:bold">cast</span><span style="color:#666">(</span><span style="color:#902000">ulong</span><span style="color:#666">*)</span> <span style="color:#666">(</span><span style="color:#40a070">0x200_0000</span> <span style="color:#666">+</span> <span style="color:#40a070">0xBFF8</span><span style="color:#666">));</span>
 </span></span><span style="display:flex;"><span>    <span style="color:#666">}</span>
 </span></span><span style="display:flex;"><span>
-</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">enum</span> mtime_freq <span style="color:#666">=</span> <span style="color:#40a070">4_800_000</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">enum</span> mtime_freq <span style="color:#666">=</span> <span style="color:#40a070">4_000_000</span><span style="color:#666">;</span>
 </span></span><span style="display:flex;"><span>
 </span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">static</span> <span style="color:#902000">void</span> <span style="color:#06287e">delay_time</span><span style="color:#666">(</span><span style="color:#902000">ulong</span> t<span style="color:#666">)</span> <span style="color:#666">{</span>
 </span></span><span style="display:flex;"><span>        <span style="color:#902000">ulong</span> rb <span style="color:#666">=</span> mtime<span style="color:#666">;</span>
@@ -316,7 +320,7 @@ entry for the UART.</p>
 </span></span><span style="display:flex;"><span>    ...
 </span></span><span style="display:flex;"><span>};
 </span></span></code></pre></div><p>The VisionFive 2 UART is apparently compatible with the Synopsys DW8250 UART
-device, which does have a manual available online<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup>. Just like with the
+device, which does have a manual available online<sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup>. Just like with the
 default QEMU UART from last post, the transmit register on this UART device is
 the first register in the list. It also turns out that the firmware initializes
 the device to run at a baud rate of 115200, so we don&rsquo;t even have to figure out
@@ -394,7 +398,7 @@ Another next step might be to enable more hardware features, such as the MMU
 that runs on the VisionFive 2 that I am developing.</p>
 <p>When running bare-metal you can also make really effective micro-benchmarks &ndash;
 for example determining exactly how many cycles it takes to execute a system
-call instruction(<code>ecall</code> in RISC-V)<sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup>. I might make a blog post about that in
+call instruction(<code>ecall</code> in RISC-V)<sup id="fnref:3"><a href="#fn:3" class="footnote-ref" role="doc-noteref">3</a></sup>. I might make a blog post about that in
 the future.</p>
 <p>Unfortunately the devices on the VisionFive 2 are not documented very well, so
 making controllers for the more advanced devices on the board seems
@@ -405,10 +409,14 @@ make some interesting programs.</p>
 <hr>
 <ol>
 <li id="fn:1">
-<p>Search for the DW_apb_uart databook.&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+<p>When the board boots up it seems to be running at 1.25 GHz, and I&rsquo;m
+not sure how to increase the clock speed at the moment.&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
 </li>
 <li id="fn:2">
-<p>I&rsquo;ve done some testing and it seems to take 8 cycles.&#160;<a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+<p>Search for the DW_apb_uart databook.&#160;<a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:3">
+<p>I&rsquo;ve done some testing and it seems to take 8 cycles.&#160;<a href="#fnref:3" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
 </li>
 </ol>
 </div>
