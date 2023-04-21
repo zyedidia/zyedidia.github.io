@@ -42,11 +42,13 @@
 
 <main>
 <h1 id="a-new-feature-in-knit">A new feature in Knit</h1>
-<p>In Knit v1.1.0 there is a new feature I&rsquo;m calling &ldquo;dynamic task elision&rdquo;, which
-allows Knit to skip a build step if, at the time when it tries to run the task,
-it can determine that out-of-date prerequisites that got rebuilt ended up not
-changing anything. This is possible thanks to Knit&rsquo;s support for hash-based
-file modification detection (and is not possible if this feature is disabled).</p>
+<p>I&rsquo;ve been writing a build tool called <a href="https://github.com/zyedidia/knit">Knit</a>
+(I&rsquo;ve written a blog post about it <a href="../3-knit-better-make">here</a>).  In Knit
+v1.1.0 there is a new feature I&rsquo;m calling &ldquo;dynamic task elision&rdquo;, which allows
+Knit to skip a build step if, at the time when it tries to run the task, it can
+determine that out-of-date prerequisites that got rebuilt ended up not changing
+anything. This is possible thanks to Knit&rsquo;s support for hash-based file
+modification detection (and is not possible if this feature is disabled).</p>
 <p>Here&rsquo;s an example: say you have a C file (<code>foo.c</code>) and the following Knitfile:</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-lua" data-lang="lua"><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">return</span> b{
 </span></span><span style="display:flex;"><span>    <span style="">$</span> foo: foo.o

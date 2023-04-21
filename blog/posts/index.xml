@@ -13,7 +13,7 @@
       <pubDate>Fri, 21 Apr 2023 00:00:00 +0000</pubDate>
       
       <guid>https://zyedidia.github.io/blog/posts/4-incremental-d-knit/</guid>
-      <description>A new feature in Knit In Knit v1.1.0 there is a new feature I&amp;rsquo;m calling &amp;ldquo;dynamic task elision&amp;rdquo;, which allows Knit to skip a build step if, at the time when it tries to run the task, it can determine that out-of-date prerequisites that got rebuilt ended up not changing anything. This is possible thanks to Knit&amp;rsquo;s support for hash-based file modification detection (and is not possible if this feature is disabled).</description>
+      <description>A new feature in Knit I&amp;rsquo;ve been writing a build tool called Knit (I&amp;rsquo;ve written a blog post about it here). In Knit v1.1.0 there is a new feature I&amp;rsquo;m calling &amp;ldquo;dynamic task elision&amp;rdquo;, which allows Knit to skip a build step if, at the time when it tries to run the task, it can determine that out-of-date prerequisites that got rebuilt ended up not changing anything. This is possible thanks to Knit&amp;rsquo;s support for hash-based file modification detection (and is not possible if this feature is disabled).</description>
     </item>
     
     <item>
