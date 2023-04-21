@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Incremental D Compilation with Knit | Zachary Yedidia&#39;s blog</title>
+    <link rel="stylesheet" href="/blog/css/style.css" />
+    <link rel="stylesheet" href="/blog/css/fonts.css" />
+    
+  </head>
+
+  <body>
+    <nav>
+    <ul class="menu">
+      
+      <li><a href="/blog">Blog</a></li>
+      
+      <li><a href="https://zyedidia.github.io">About Me</a></li>
+      
+      <li><a href="/blog/categories/">Categories</a></li>
+      
+      <li><a href="/blog/index.xml">RSS Feed</a></li>
+      
+    </ul>
+    <hr/>
+    </nav>
+
+<div class="article-meta">
+<h1><span class="title">Incremental D Compilation with Knit</span></h1>
+
+<h2 class="date">2023/04/21</h2>
+<p class="terms">
+  
+  
+  Categories: <a href="/categories/d">d</a> <a href="/categories/knit">knit</a> 
+  
+  
+  
+  
+</p>
+</div>
+
+<main>
+<h1 id="a-new-feature-in-knit">A new feature in Knit</h1>
+<p>In Knit v1.1.0 there is a new feature I&rsquo;m calling &ldquo;dynamic task elision&rdquo;, which
+allows Knit to skip a build step if, at the time when it tries to run the task,
+it can determine that out-of-date prerequisites that got rebuilt ended up not
+changing anything. This is possible thanks to Knit&rsquo;s support for hash-based
+file modification detection (and is not possible if this feature is disabled).</p>
+<p>Here&rsquo;s an example: say you have a C file (<code>foo.c</code>) and the following Knitfile:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-lua" data-lang="lua"><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">return</span> b{
+</span></span><span style="display:flex;"><span>    <span style="">$</span> foo: foo.o
+</span></span><span style="display:flex;"><span>        gcc <span style="">$</span>input <span style="color:#666">-</span>o <span style="">$</span>output
+</span></span><span style="display:flex;"><span>    <span style="">$</span> foo.o: foo.c
+</span></span><span style="display:flex;"><span>        gcc <span style="">$</span>input <span style="color:#666">-</span>c <span style="color:#666">-</span>o <span style="">$</span>output
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Running <code>knit</code> would perform:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>$ knit
+</span></span><span style="display:flex;"><span>gcc foo.c -c -o foo.o
+</span></span><span style="display:flex;"><span>gcc foo.o -o foo
+</span></span></code></pre></div><p>Now if you add a comment to <code>foo.c</code> and re-build, Knit will dynamically determine
+that the linking step can be skipped because the generated object file is actually
+equivalent to what it was on the previous run.</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-sh" data-lang="sh"><span style="display:flex;"><span>$ micro foo.c <span style="color:#60a0b0;font-style:italic"># add a comment to foo.c</span>
+</span></span><span style="display:flex;"><span>$ knit
+</span></span><span style="display:flex;"><span>gcc foo.c -c -o foo.o
+</span></span></code></pre></div><p>The linking step is elided thanks to this optimization. We can use this
+optimization along with D interface files to design builds for D programs that
+are incremental and parallel (just as incremental/parallel as a C build)
+without manually writing header files.</p>
+<h1 id="d-interface-files">D interface files</h1>
+<p>D doesn&rsquo;t have header files, which means the language doesn&rsquo;t force you do
+separate out a module&rsquo;s implementation from its interface. However, this
+separation is useful for incremental builds because it allows the build to skip
+recompilation of dependent modules if only module&rsquo;s implementation changes (the
+module can only be used via its interface, so modules that import it don&rsquo;t need
+to be recompiled if some hidden details in the implementation change).
+Recompilation of dependent modules should only happen when interfaces change.
+Since D doesn&rsquo;t force you to write out the interface in a separate file, it&rsquo;s
+hard to determine when the interface has changed (you can&rsquo;t just check if the
+interface file changed, since it doesn&rsquo;t exist).</p>
+<p>Luckily, D does have interface files (<code>.di</code> files) that can be auto-generated
+from normal <code>.d</code> files. For example, if <code>foo.d</code> contains:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span><span style="color:#902000">int</span> <span style="color:#06287e">foo</span><span style="color:#666">()</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">return</span> <span style="color:#40a070">42</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#666">}</span>
+</span></span></code></pre></div><p>then we can generate a <code>.di</code> file like so:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>$ gdc -fsyntax-only -Hf foo.di foo.d
+</span></span></code></pre></div><p><code>foo.di</code> will contain:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span><span style="color:#60a0b0;font-style:italic">// D import file generated from &#39;foo.d&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#60a0b0;font-style:italic"></span><span style="color:#902000">int</span> <span style="color:#06287e">foo</span><span style="color:#666">();</span>
+</span></span></code></pre></div><p>Now even if we change <code>foo</code>&rsquo;s return value, the D interface file will be
+unchanged. We can use this, along with Knit&rsquo;s dynamic task elision to
+write builds for D programs that are highly incremental.</p>
+<h1 id="incremental-and-parallel-d-compilation">Incremental and parallel D compilation</h1>
+<p>Here&rsquo;s a small Knitfile for D programs that will build them incrementally and
+in parallel:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-lua" data-lang="lua"><span style="display:flex;"><span>knit <span style="color:#666">=</span> require(<span style="color:#4070a0">&#34;knit&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">local</span> src <span style="color:#666">=</span> knit.rglob(<span style="color:#4070a0">&#34;.&#34;</span>, <span style="color:#4070a0">&#34;*.d&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">local</span> obj <span style="color:#666">=</span> knit.extrepl(src, <span style="color:#4070a0">&#34;.d&#34;</span>, <span style="color:#4070a0">&#34;.o&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">return</span> b{
+</span></span><span style="display:flex;"><span>    <span style="">$</span> prog: <span style="">$</span>(obj)
+</span></span><span style="display:flex;"><span>        gdc <span style="">$</span>input <span style="color:#666">-</span>o <span style="">$</span>output
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="">$</span> <span style="color:#666">%</span>.di: <span style="color:#666">%</span>.d
+</span></span><span style="display:flex;"><span>        gdc <span style="color:#666">-</span>fsyntax<span style="color:#666">-</span>only <span style="color:#666">-</span>Hf <span style="">$</span>output <span style="">$</span>input
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="">$</span> <span style="color:#666">%</span>.o:D[<span style="color:#666">%</span>.dep]: <span style="color:#666">%</span>.d <span style="color:#666">%</span>.di[I]
+</span></span><span style="display:flex;"><span>        gdc <span style="color:#666">-</span>MM <span style="color:#666">-</span>MF <span style="">$</span>dep <span style="color:#666">-</span>MT <span style="">$</span>output <span style="color:#666">-</span>c <span style="">$</span>input <span style="color:#666">-</span>o <span style="">$</span>output
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>The interesting rule is the one for <code>.o</code> files:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>$ %.o:D[%.dep]: %.d %.di[I]
+</span></span><span style="display:flex;"><span>    gdc -MM -MF $dep -MT $output -c $input -o $output
+</span></span></code></pre></div><p>This rule says that to build a <code>.o</code> file, the system must have the
+corresponding <code>.d</code> and <code>.di</code> files for it (this causes the <code>.di</code> to rebuild if
+necessary, using the <code>%.di</code> rule). It also says that a <code>.dep</code> dependency file
+is created and should be read to find additional prerequisites. This file will
+be generated by GDC by passing the <code>-MM -MF $dep -MT $output</code> flags (the $dep
+special variable is just whatever <code>%.dep</code> becomes when matched). Using dynamic
+task elision, if Knit determines that the <code>.di</code> file of a prerequisite
+(probably listed in the <code>.dep</code> file) has not changed, then it will skip
+generation of the object file.</p>
+<p>Let&rsquo;s look at a concrete example. I have a simple math module in <code>math.d</code>:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">module</span> <span style="color:#0e84b5;font-weight:bold">math</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#902000">int</span> <span style="color:#06287e">square</span><span style="color:#666">(</span><span style="color:#902000">int</span> x<span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">return</span> x <span style="color:#666">*</span> x<span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#666">}</span>
+</span></span></code></pre></div><p>Then in a main module in <code>main.d</code> I use the math module:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">module</span> <span style="color:#0e84b5;font-weight:bold">main</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">import</span> <span style="color:#0e84b5;font-weight:bold">math</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">import</span> <span style="color:#0e84b5;font-weight:bold">std.stdio</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#902000">void</span> <span style="color:#06287e">main</span><span style="color:#666">()</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>    writeln<span style="color:#666">(</span>square<span style="color:#666">(</span><span style="color:#40a070">4</span><span style="color:#666">));</span>
+</span></span><span style="display:flex;"><span><span style="color:#666">}</span>
+</span></span></code></pre></div><p>Running Knit with the Knitfile from above runs:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>$ knit
+</span></span><span style="display:flex;"><span>gdc -fsyntax-only -Hf main.di main.d
+</span></span><span style="display:flex;"><span>gdc -fsyntax-only -Hf math.di math.d
+</span></span><span style="display:flex;"><span>gdc -MM -MF math.dep -MT math.o -c math.d -o math.o
+</span></span><span style="display:flex;"><span>gdc -MM -MF main.dep -MT main.o -c main.d -o main.o
+</span></span><span style="display:flex;"><span>gdc main.o math.o -o prog
+</span></span><span style="display:flex;"><span>$ ./prog
+</span></span><span style="display:flex;"><span>16
+</span></span></code></pre></div><p>(note: the generation of <code>.di</code> files runs in parallel, and the generation of
+<code>.o</code> files also runs in parallel)</p>
+<p>This produces the <code>math.di</code> file:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span><span style="color:#60a0b0;font-style:italic">// D import file generated from &#39;math.d&#39;
+</span></span></span><span style="display:flex;"><span><span style="color:#60a0b0;font-style:italic"></span><span style="color:#007020;font-weight:bold">module</span> <span style="color:#0e84b5;font-weight:bold">math</span><span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#902000">int</span> <span style="color:#06287e">square</span><span style="color:#666">(</span><span style="color:#902000">int</span> x<span style="color:#666">);</span>
+</span></span></code></pre></div><p>and the <code>main.dep</code> file, which captures that <code>main</code> imports <code>math</code>, and
+therefore depends on the <code>math.di</code> file:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>main.o: main.d math.di
+</span></span></code></pre></div><p>Here&rsquo;s a visualization of the build graph (generated with <code>knit -t graph pdf</code>):</p>
+<p align="center">
+<img src="../img/4/graph.svg" width="700" />
+</p>
+<p>Now we can modify <code>square</code> to do something different:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span><span style="color:#60a0b0;font-style:italic">// not square anymore
+</span></span></span><span style="display:flex;"><span><span style="color:#60a0b0;font-style:italic"></span><span style="color:#902000">int</span> <span style="color:#06287e">square</span><span style="color:#666">(</span><span style="color:#902000">int</span> x<span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">return</span> x<span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#666">}</span>
+</span></span></code></pre></div><p>Rebuilding runs the following commands:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>$ knit
+</span></span><span style="display:flex;"><span>gdc -fsyntax-only -Hf math.di math.d
+</span></span><span style="display:flex;"><span>gdc -MM -MF math.dep -MT math.o -c math.d -o math.o
+</span></span><span style="display:flex;"><span>gdc main.o math.o -o prog
+</span></span><span style="display:flex;"><span>$ ./prog
+</span></span><span style="display:flex;"><span>4
+</span></span></code></pre></div><p>Of the object files, only <code>math.o</code> got rebuilt. This is because even though <code>math.di</code> was
+out-of-date and is a prerequisite of <code>main.o</code>, when <code>math.di</code> got re-generated, Knit
+dynamically saw that nothing in it changed, and therefore <code>main.o</code> in fact did not need
+to be rebuilt. You can see this information in debug mode with the <code>-D</code> flag:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>$ knit -D
+</span></span><span style="display:flex;"><span>gdc -fsyntax-only -Hf math.di math.d
+</span></span><span style="display:flex;"><span>gdc -MM -MF math.dep -MT math.o -c math.d -o math.o
+</span></span><span style="display:flex;"><span>[debug] [main.o] elided
+</span></span><span style="display:flex;"><span>gdc main.o math.o -o prog
+</span></span></code></pre></div><p>Knit informs us that the build step for <code>main.o</code> was elided.</p>
+<p>However, if we change square&rsquo;s interface, with a modification like this:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span><span style="color:#902000">ulong</span> <span style="color:#06287e">square</span><span style="color:#666">(</span><span style="color:#902000">ulong</span> x<span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">return</span> x <span style="color:#666">*</span> x<span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#666">}</span>
+</span></span></code></pre></div><p>Then a rebuild will recompile <code>main.o</code> as well (since now the <code>.di</code> file has
+actually changed):</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>$ knit
+</span></span><span style="display:flex;"><span>gdc -fsyntax-only -Hf math.di math.d
+</span></span><span style="display:flex;"><span>gdc -MM -MF math.dep -MT math.o -c math.d -o math.o
+</span></span><span style="display:flex;"><span>gdc -MM -MF main.dep -MT main.o -c main.d -o main.o
+</span></span><span style="display:flex;"><span>gdc main.o math.o -o prog
+</span></span></code></pre></div><p>In this small example, the optimization doesn&rsquo;t have a big effect. But for a
+large project it would, since it would guarantee that changing a function&rsquo;s
+implementation will only cause that single file to be re-compiled, even if that
+module is imported in many places.</p>
+<h2 id="ldc-example">LDC example</h2>
+<p>The previous Knitfile works with GDC. If you want to use LDC, here is an equivalent version:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-lua" data-lang="lua"><span style="display:flex;"><span>knit <span style="color:#666">=</span> require(<span style="color:#4070a0">&#34;knit&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">local</span> src <span style="color:#666">=</span> knit.rglob(<span style="color:#4070a0">&#34;.&#34;</span>, <span style="color:#4070a0">&#34;*.d&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">local</span> obj <span style="color:#666">=</span> knit.extrepl(src, <span style="color:#4070a0">&#34;.d&#34;</span>, <span style="color:#4070a0">&#34;.o&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">return</span> b{
+</span></span><span style="display:flex;"><span>    <span style="">$</span> prog: <span style="">$</span>(obj)
+</span></span><span style="display:flex;"><span>        ldc2 <span style="">$</span>input <span style="color:#666">-</span>of <span style="">$</span>output
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="">$</span> <span style="color:#666">%</span>.di: <span style="color:#666">%</span>.d
+</span></span><span style="display:flex;"><span>        ldc2 <span style="color:#666">-</span>Hf <span style="">$</span>output <span style="color:#666">-</span>c <span style="">$</span>input <span style="color:#666">-</span>o<span style="color:#666">-</span>
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="">$</span> <span style="color:#666">%</span>.o:D[<span style="color:#666">%</span>.dep]: <span style="color:#666">%</span>.d <span style="color:#666">%</span>.di[I]
+</span></span><span style="display:flex;"><span>        ldc2 <span style="color:#666">-</span>makedeps<span style="color:#666">=</span><span style="">$</span>dep <span style="color:#666">-</span>c <span style="">$</span>input <span style="color:#666">-</span>of <span style="">$</span>output
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>LDC doesn&rsquo;t have a <code>-fsyntax-only</code> flag and I&rsquo;m not sure if <code>-o-</code> causes
+the object file to not be compiled at all, or just causes it to not be
+written to the filesystem.</p>
+<h2 id="putting-generated-files-in-a-hidden-location">Putting generated files in a hidden location</h2>
+<p>I prefer not polluting the source directory with <code>.di</code>, <code>.dep</code>, and <code>.o</code>
+files so I like to put these files in a hidden directory called <code>.build</code>.</p>
+<p>One consequence of this is that the compiler will need to be given this
+directory as an import path, so that it can generate <code>.dep</code> files that
+reference the <code>.di</code> files there. Annoyingly, it seems like D compilers
+magically include the current directory as the highest priority import path.
+This is troublesome because it means the <code>.d</code> files in the current directory
+will have higher priority over the <code>.di</code> files in <code>.build</code> when generating
+dependency information for <code>.dep</code>. As a result, I put my source code in a <code>src</code>
+directory to avoid this. Possible solutions in the future could be to have the
+current directory be the lowest priority, or to include a flag to remove the
+current directory from the search path (still allowing it to be manually added
+with <code>-I.</code> with the correct priority).</p>
+<p>Here&rsquo;s an example updated Knitfile that puts the build files in <code>.build</code> and
+reads the sources from <code>src</code>:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-lua" data-lang="lua"><span style="display:flex;"><span>knit <span style="color:#666">=</span> require(<span style="color:#4070a0">&#34;knit&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">local</span> build <span style="color:#666">=</span> <span style="color:#4070a0">&#34;.build&#34;</span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">local</span> src <span style="color:#666">=</span> knit.rglob(<span style="color:#4070a0">&#34;src&#34;</span>, <span style="color:#4070a0">&#34;*.d&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">local</span> obj <span style="color:#666">=</span> knit.prefix(knit.extrepl(src, <span style="color:#4070a0">&#34;.d&#34;</span>, <span style="color:#4070a0">&#34;.o&#34;</span>), build <span style="color:#666">..</span> <span style="color:#4070a0">&#34;/&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">return</span> b{
+</span></span><span style="display:flex;"><span>    <span style="">$</span> prog: <span style="">$</span>(obj)
+</span></span><span style="display:flex;"><span>        gdc <span style="">$</span>input <span style="color:#666">-</span>o <span style="">$</span>output
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="">$</span> <span style="">$</span>build<span style="color:#666">/%</span>.di: <span style="color:#666">%</span>.d
+</span></span><span style="display:flex;"><span>        gdc <span style="color:#666">-</span>I<span style="">$</span>build<span style="color:#666">/</span>src <span style="color:#666">-</span>Isrc <span style="color:#666">-</span>fsyntax<span style="color:#666">-</span>only <span style="color:#666">-</span>Hf <span style="">$</span>output <span style="">$</span>input
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="">$</span> <span style="">$</span>build<span style="color:#666">/%</span>.o:D[<span style="">$</span>build<span style="color:#666">/%</span>.dep]: <span style="color:#666">%</span>.d <span style="">$</span>build<span style="color:#666">/%</span>.di[I]
+</span></span><span style="display:flex;"><span>        gdc <span style="color:#666">-</span>I<span style="">$</span>build<span style="color:#666">/</span>src <span style="color:#666">-</span>Isrc <span style="color:#666">-</span>MM <span style="color:#666">-</span>MF <span style="">$</span>dep <span style="color:#666">-</span>MT <span style="">$</span>output <span style="color:#666">-</span>c <span style="">$</span>input <span style="color:#666">-</span>o <span style="">$</span>output
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Another solution would be to put the Knitfile in a <code>build</code> directory and set up
+an &ldquo;out-of-tree&rdquo; build.</p>
+<h2 id="templates">Templates</h2>
+<p>Templated code automatically becomes a part of the interface. This is because
+the caller must know the implementation in order to instantiate the template
+properly. Thus, templated code won&rsquo;t benefit much from this incremental
+approach (modifying templated code will always cause all modules that import it
+to be rebuilt).</p>
+<p>For example, this function:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span>T <span style="color:#06287e">square</span><span style="color:#666">(</span>T<span style="color:#666">)(</span>T x<span style="color:#666">)</span> <span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">return</span> x <span style="color:#666">*</span> x<span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#666">}</span>
+</span></span></code></pre></div><p>causes the following to be generated in the <code>.di</code> file:</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span>T <span style="color:#06287e">square</span><span style="color:#666">(</span>T<span style="color:#666">)(</span>T x<span style="color:#666">)</span>
+</span></span><span style="display:flex;"><span><span style="color:#666">{</span>
+</span></span><span style="display:flex;"><span>	<span style="color:#007020;font-weight:bold">return</span> x <span style="color:#666">*</span> x<span style="color:#666">;</span>
+</span></span><span style="display:flex;"><span><span style="color:#666">}</span>
+</span></span></code></pre></div><p>Clearly, if we modify the function&rsquo;s implementation, the interface file will also change.</p>
+<h2 id="areas-for-improvements-in-d-interface-files">Areas for improvements in D interface files</h2>
+<p>D interface files aren&rsquo;t as strict as they could be. They include extra
+information that expose module details unnecessarily. This can cause
+unnecessary rebuilds. Here&rsquo;s a list of things I&rsquo;ve noticed:</p>
+<ul>
+<li>
+<p>D interfaces include private definitions. Private definitions are not
+accessible outside the module, so they do not need to be included in a
+module&rsquo;s interface, but D includes them anyway.</p>
+</li>
+<li>
+<p>D interface files include import information. I don&rsquo;t think this should be
+part of a module&rsquo;s interface unless it is a public import. One solution is to
+import the modules you need only within function implementations, so those
+are not exposed, but this can get annoying if used in multiple functions
+(then you probably want to import at the higher scope, which will cause the
+import to become exposed).</p>
+</li>
+<li>
+<p>D interface files include the names of arguments. In the <code>square</code> example
+from above, the signature was <code>int square(int x)</code>. If the math module changed
+the argument name to <code>y</code>, the function interface is still the same, but would
+unecessarily trigger a recompile. Note: if D gets named argument function
+calling, then including this information will be necessary anyway.</p>
+</li>
+</ul>
+<h1 id="link-time-optimization">Link-time optimization</h1>
+<p>Generating lots of object files is good for incremental and parallel builds.
+However, it prevents the compiler from optimizing across modules. The <code>square</code>
+function from the <code>math</code> module won&rsquo;t be inlined into <code>main</code> because the
+compiler doesn&rsquo;t see its implementation when compiling <code>main</code>. There are a
+few solutions to this:</p>
+<ol>
+<li>Use lots of objects for development builds, and a unified build for
+releases. If you pass all the <code>.d</code> files to the compiler, it will compile
+everything together &ndash; bad for parallel/incremental, but good for
+optimizing, since the compiler sees everything at once.</li>
+<li>Use link-time optimization (LTO) to allow the linker to invoke the compiler during
+linking.</li>
+</ol>
+<p>I&rsquo;ll describe the second approach in more detail because I think it does a
+better job at preserving parallelism/incrementality while still providing good
+optimizations (often even stronger optimizations than with a unified build).
+Setting up link-time optimization with GDC is as simple as adding <code>-flto</code>
+to the compile and link rules (and of course we have to turn on optimizations
+with <code>-O2</code>).</p>
+<div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-lua" data-lang="lua"><span style="display:flex;"><span>knit <span style="color:#666">=</span> require(<span style="color:#4070a0">&#34;knit&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">local</span> src <span style="color:#666">=</span> knit.rglob(<span style="color:#4070a0">&#34;.&#34;</span>, <span style="color:#4070a0">&#34;*.d&#34;</span>)
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">local</span> obj <span style="color:#666">=</span> knit.extrepl(src, <span style="color:#4070a0">&#34;.d&#34;</span>, <span style="color:#4070a0">&#34;.o&#34;</span>)
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">return</span> b{
+</span></span><span style="display:flex;"><span>    <span style="">$</span> prog: <span style="">$</span>(obj)
+</span></span><span style="display:flex;"><span>        gdc <span style="">$</span>input <span style="color:#666">-</span>o <span style="">$</span>output <span style="color:#666">-</span>flto <span style="color:#666">-</span>O2
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="">$</span> <span style="color:#666">%</span>.di: <span style="color:#666">%</span>.d
+</span></span><span style="display:flex;"><span>        gdc <span style="color:#666">-</span>fsyntax<span style="color:#666">-</span>only <span style="color:#666">-</span>Hf <span style="">$</span>output <span style="">$</span>input
+</span></span><span style="display:flex;"><span>
+</span></span><span style="display:flex;"><span>    <span style="">$</span> <span style="color:#666">%</span>.o:D[<span style="color:#666">%</span>.dep]: <span style="color:#666">%</span>.d <span style="color:#666">%</span>.di[I]
+</span></span><span style="display:flex;"><span>        gdc <span style="color:#666">-</span>MM <span style="color:#666">-</span>MF <span style="">$</span>dep <span style="color:#666">-</span>MT <span style="">$</span>output <span style="color:#666">-</span>c <span style="">$</span>input <span style="color:#666">-</span>o <span style="">$</span>output <span style="color:#666">-</span>flto <span style="color:#666">-</span>O2
+</span></span><span style="display:flex;"><span>}
+</span></span></code></pre></div><p>Now if you compile and inspect the disassembly, you&rsquo;ll notice that the call to
+<code>square</code> has been omitted, and the compiler has replaced it with a direct print
+of the constant <code>16</code>.</p>
+<p>With LDC, you just have to add <code>-O2 -flto=thin</code> (you can also use <code>-flto=full</code> for
+a slower but more complete optimization pass).</p>
+<h1 id="conclusion">Conclusion</h1>
+<p>I think this is a nice setup for efficient, parallel, and incremental builds
+with D. It doesn&rsquo;t seem like this is a widely used approach though &ndash; as far as
+I can tell, Dub does not do this. Hopefully this post clarifies how to set this
+up, and maybe this can be implemented in the future in Dub so that everyone can
+more easily benefit from faster incremental builds (or you can just use Knit!).</p>
+
+</main>
+
+  <footer>
+  <script data-goatcounter="https://18947513.goatcounter.com/count" async src="https://zyedidia.github.io/data/count.js"></script>
+
+  
+  <hr/>
+  <a href="https://zyedidia.github.io">Zachary Yedidia</a> | <a href="https://github.com/zyedidia">Github</a>
+  
+  </footer>
+  </body>
+</html>
+

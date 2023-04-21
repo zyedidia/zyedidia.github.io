@@ -6,7 +6,16 @@
     <description>Recent content in knit on Zachary Yedidia&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Wed, 22 Feb 2023 00:00:00 +0000</lastBuildDate><atom:link href="https://zyedidia.github.io/blog/categories/knit/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Fri, 21 Apr 2023 00:00:00 +0000</lastBuildDate><atom:link href="https://zyedidia.github.io/blog/categories/knit/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Incremental D Compilation with Knit</title>
+      <link>https://zyedidia.github.io/blog/posts/4-incremental-d-knit/</link>
+      <pubDate>Fri, 21 Apr 2023 00:00:00 +0000</pubDate>
+      
+      <guid>https://zyedidia.github.io/blog/posts/4-incremental-d-knit/</guid>
+      <description>A new feature in Knit In Knit v1.1.0 there is a new feature I&amp;rsquo;m calling &amp;ldquo;dynamic task elision&amp;rdquo;, which allows Knit to skip a build step if, at the time when it tries to run the task, it can determine that out-of-date prerequisites that got rebuilt ended up not changing anything. This is possible thanks to Knit&amp;rsquo;s support for hash-based file modification detection (and is not possible if this feature is disabled).</description>
+    </item>
+    
     <item>
       <title>Knit: making a better Make</title>
       <link>https://zyedidia.github.io/blog/posts/3-knit-better-make/</link>
