@@ -116,7 +116,9 @@ in parallel:</p>
 </span></span></code></pre></div><p>The interesting rule is the one for <code>.o</code> files:</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-txt" data-lang="txt"><span style="display:flex;"><span>$ %.o:D[%.dep]: %.d %.di[I]
 </span></span><span style="display:flex;"><span>    gdc -MM -MF $dep -MT $output -c $input -o $output
-</span></span></code></pre></div><p>This rule says that to build a <code>.o</code> file, the system must have the
+</span></span></code></pre></div><p>(note: the <code>[I]</code> attribute on <code>%.di</code> input indicates that the dependency is
+implicit and should not be part of the <code>$input</code> variable)</p>
+<p>This rule says that to build a <code>.o</code> file, the system must have the
 corresponding <code>.d</code> and <code>.di</code> files for it (this causes the <code>.di</code> to rebuild if
 necessary, using the <code>%.di</code> rule). It also says that a <code>.dep</code> dependency file
 is created and should be read to find additional prerequisites. This file will
