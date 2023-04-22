@@ -276,15 +276,18 @@ unnecessary rebuilds. Here&rsquo;s a list of things I&rsquo;ve noticed:</p>
 <li>
 <p>D interfaces include private definitions. Private definitions are not
 accessible outside the module, so they do not need to be included in a
-module&rsquo;s interface, but D includes them anyway.</p>
+module&rsquo;s interface, but D includes them anyway. Maybe they are included so D
+can provide better error messages (&ldquo;error: <code>x</code> is private&rdquo;, instead of
+&ldquo;error: <code>x</code> does not exist&rdquo;), but I&rsquo;m not sure if this is the right tradeoff
+(error messages vs. incrementality).</p>
 </li>
 <li>
-<p>D interface files include import information. I don&rsquo;t think this should be
-part of a module&rsquo;s interface unless it is a public import. One solution is to
-import the modules you need only within function implementations, so those
-are not exposed, but this can get annoying if used in multiple functions
-(then you probably want to import at the higher scope, which will cause the
-import to become exposed).</p>
+<p>D interface files include import information. Imported modules are sometimes
+only used within a function implementation, so those imports would not need
+to be a part of the interface.  One solution is to import those modules only
+within function implementations, so they are not exposed, but this can get
+annoying if used in multiple functions (then you probably want to import at
+the higher scope, which will cause the import to become exposed).</p>
 </li>
 <li>
 <p>D interface files include the names of arguments. In the <code>square</code> example
