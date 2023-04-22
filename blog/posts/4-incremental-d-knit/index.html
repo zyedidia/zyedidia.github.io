@@ -81,8 +81,9 @@ Recompilation of dependent modules should only happen when interfaces change.
 Since D doesn&rsquo;t force you to write out the interface in a separate file, it&rsquo;s
 hard to determine when the interface has changed (you can&rsquo;t just check if the
 interface file changed, since it doesn&rsquo;t exist).</p>
-<p>Luckily, D does have interface files (<code>.di</code> files) that can be auto-generated
-from normal <code>.d</code> files. For example, if <code>foo.d</code> contains:</p>
+<p>Luckily, D does have <a href="https://dlang.org/dmd-linux.html#interface-files">interface
+files</a> (<code>.di</code> files) that can
+be auto-generated from normal <code>.d</code> files. For example, if <code>foo.d</code> contains:</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-d" data-lang="d"><span style="display:flex;"><span><span style="color:#902000">int</span> <span style="color:#06287e">foo</span><span style="color:#666">()</span> <span style="color:#666">{</span>
 </span></span><span style="display:flex;"><span>    <span style="color:#007020;font-weight:bold">return</span> <span style="color:#40a070">42</span><span style="color:#666">;</span>
 </span></span><span style="display:flex;"><span><span style="color:#666">}</span>
