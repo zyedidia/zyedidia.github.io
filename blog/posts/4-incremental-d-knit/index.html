@@ -300,6 +300,10 @@ unecessarily trigger a recompile. Note: if D gets named argument function
 calling, then including this information will be necessary anyway.</p>
 </li>
 </ul>
+<p>Edit: as explained in <a href="https://forum.dlang.org/post/u23rug$1ti6$1@digitalmars.com">this
+message</a> private
+definitions and imports need to be included in <code>.di</code> files because of
+templates.</p>
 <h1 id="link-time-optimization">Link-time optimization</h1>
 <p>Generating lots of object files is good for incremental and parallel builds.
 However, it prevents the compiler from optimizing across modules. The <code>square</code>
