@@ -6,7 +6,18 @@
     <description>Recent content in Posts on Zachary Yedidia&#39;s blog</description>
     <generator>Hugo -- gohugo.io</generator>
     <language>en-us</language>
-    <lastBuildDate>Fri, 21 Apr 2023 00:00:00 +0000</lastBuildDate><atom:link href="https://zyedidia.github.io/blog/posts/index.xml" rel="self" type="application/rss+xml" />
+    <lastBuildDate>Mon, 15 May 2023 00:00:00 +0000</lastBuildDate><atom:link href="https://zyedidia.github.io/blog/posts/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Unsafe transmute implemented in Safe Rust</title>
+      <link>https://zyedidia.github.io/blog/posts/5-safe-transmute/</link>
+      <pubDate>Mon, 15 May 2023 00:00:00 +0000</pubDate>
+      
+      <guid>https://zyedidia.github.io/blog/posts/5-safe-transmute/</guid>
+      <description>I came across this issue on the Rust issue tracker recently: https://github.com/rust-lang/rust/issues/57893.
+One of the GitHub comments shows how you can abuse this bug to write a transmute function without the use of unsafe (and then you can obviously use this to cause a segmentation fault).
+trait Object&amp;lt;U&amp;gt; { type Output; } impl&amp;lt;T: ?Sized, U&amp;gt; Object&amp;lt;U&amp;gt; for T { type Output = U; } fn foo&amp;lt;T: ?Sized, U&amp;gt;(x: &amp;lt;T as Object&amp;lt;U&amp;gt;&amp;gt;::Output) -&amp;gt; U { x } fn transmute&amp;lt;T, U&amp;gt;(x: T) -&amp;gt; U { foo::&amp;lt;dyn Object&amp;lt;U, Output = T&amp;gt;, U&amp;gt;(x) } fn main() { // make a null pointer let p = core::ptr::null_mut(); // &amp;#34;safely&amp;#34; transmute it into a reference let x = transmute::&amp;lt;*mut i64, &amp;amp;&amp;#39;static i64&amp;gt;(p); // access the reference println!</description>
+    </item>
+    
     <item>
       <title>Incremental D Compilation with Knit</title>
       <link>https://zyedidia.github.io/blog/posts/4-incremental-d-knit/</link>
