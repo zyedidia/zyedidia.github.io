@@ -45,9 +45,9 @@
 <a href="https://github.com/rust-lang/rust/issues/57893">https://github.com/rust-lang/rust/issues/57893</a>.</p>
 <p>One of the <a href="https://github.com/rust-lang/rust/issues/57893#issuecomment-500250283">GitHub
 comments</a>
-shows how you can abuse this bug to write a <code>transmute</code> function without the
-use of <code>unsafe</code> (and then you can obviously use this to cause a segmentation
-fault).</p>
+shows how you can abuse this bug to write a <code>transmute</code><sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup> function without the
+use of <code>unsafe</code> (and then you can obviously use this to cause undefined
+behavior in Safe Rust programs).</p>
 <div class="highlight"><pre tabindex="0" style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4;"><code class="language-rust" data-lang="rust"><span style="display:flex;"><span><span style="color:#007020;font-weight:bold">trait</span><span style="color:#bbb"> </span>Object<span style="color:#666">&lt;</span>U<span style="color:#666">&gt;</span><span style="color:#bbb"> </span>{<span style="color:#bbb">
 </span></span></span><span style="display:flex;"><span><span style="color:#bbb">    </span><span style="color:#007020;font-weight:bold">type</span> <span style="color:#0e84b5;font-weight:bold">Output</span>;<span style="color:#bbb">
 </span></span></span><span style="display:flex;"><span><span style="color:#bbb"></span>}<span style="color:#bbb">
@@ -56,12 +56,12 @@ fault).</p>
 </span></span></span><span style="display:flex;"><span><span style="color:#bbb">    </span><span style="color:#007020;font-weight:bold">type</span> <span style="color:#0e84b5;font-weight:bold">Output</span><span style="color:#bbb"> </span><span style="color:#666">=</span><span style="color:#bbb"> </span>U;<span style="color:#bbb">
 </span></span></span><span style="display:flex;"><span><span style="color:#bbb"></span>}<span style="color:#bbb">
 </span></span></span><span style="display:flex;"><span><span style="color:#bbb">
-</span></span></span><span style="display:flex;"><span><span style="color:#bbb"></span><span style="color:#007020;font-weight:bold">fn</span> <span style="color:#06287e">foo</span><span style="color:#666">&lt;</span>T: <span style="color:#666">?</span><span style="color:#007020">Sized</span>,<span style="color:#bbb"> </span>U<span style="color:#666">&gt;</span>(x: <span style="color:#666">&lt;</span>T<span style="color:#bbb"> </span><span style="color:#007020;font-weight:bold">as</span><span style="color:#bbb"> </span>Object<span style="color:#666">&lt;</span>U<span style="color:#666">&gt;&gt;</span>::Output)<span style="color:#bbb"> </span>-&gt; <span style="color:#0e84b5;font-weight:bold">U</span><span style="color:#bbb"> </span>{<span style="color:#bbb">
+</span></span></span><span style="display:flex;"><span><span style="color:#bbb"></span><span style="color:#007020;font-weight:bold">fn</span> <span style="color:#06287e">transmute_obj</span><span style="color:#666">&lt;</span>T: <span style="color:#666">?</span><span style="color:#007020">Sized</span>,<span style="color:#bbb"> </span>U<span style="color:#666">&gt;</span>(x: <span style="color:#666">&lt;</span>T<span style="color:#bbb"> </span><span style="color:#007020;font-weight:bold">as</span><span style="color:#bbb"> </span>Object<span style="color:#666">&lt;</span>U<span style="color:#666">&gt;&gt;</span>::Output)<span style="color:#bbb"> </span>-&gt; <span style="color:#0e84b5;font-weight:bold">U</span><span style="color:#bbb"> </span>{<span style="color:#bbb">
 </span></span></span><span style="display:flex;"><span><span style="color:#bbb">    </span>x<span style="color:#bbb">
 </span></span></span><span style="display:flex;"><span><span style="color:#bbb"></span>}<span style="color:#bbb">
 </span></span></span><span style="display:flex;"><span><span style="color:#bbb">
 </span></span></span><span style="display:flex;"><span><span style="color:#bbb"></span><span style="color:#007020;font-weight:bold">fn</span> <span style="color:#06287e">transmute</span><span style="color:#666">&lt;</span>T,<span style="color:#bbb"> </span>U<span style="color:#666">&gt;</span>(x: <span style="color:#0e84b5;font-weight:bold">T</span>)<span style="color:#bbb"> </span>-&gt; <span style="color:#0e84b5;font-weight:bold">U</span><span style="color:#bbb"> </span>{<span style="color:#bbb">
-</span></span></span><span style="display:flex;"><span><span style="color:#bbb">    </span>foo::<span style="color:#666">&lt;</span><span style="color:#007020;font-weight:bold">dyn</span><span style="color:#bbb"> </span>Object<span style="color:#666">&lt;</span>U,<span style="color:#bbb"> </span>Output<span style="color:#bbb"> </span><span style="color:#666">=</span><span style="color:#bbb"> </span>T<span style="color:#666">&gt;</span>,<span style="color:#bbb"> </span>U<span style="color:#666">&gt;</span>(x)<span style="color:#bbb">
+</span></span></span><span style="display:flex;"><span><span style="color:#bbb">    </span>transmute_obj::<span style="color:#666">&lt;</span><span style="color:#007020;font-weight:bold">dyn</span><span style="color:#bbb"> </span>Object<span style="color:#666">&lt;</span>U,<span style="color:#bbb"> </span>Output<span style="color:#bbb"> </span><span style="color:#666">=</span><span style="color:#bbb"> </span>T<span style="color:#666">&gt;</span>,<span style="color:#bbb"> </span>U<span style="color:#666">&gt;</span>(x)<span style="color:#bbb">
 </span></span></span><span style="display:flex;"><span><span style="color:#bbb"></span>}<span style="color:#bbb">
 </span></span></span><span style="display:flex;"><span><span style="color:#bbb">
 </span></span></span><span style="display:flex;"><span><span style="color:#bbb"></span><span style="color:#007020;font-weight:bold">fn</span> <span style="color:#06287e">main</span>()<span style="color:#bbb"> </span>{<span style="color:#bbb">
@@ -73,11 +73,20 @@ fault).</p>
 </span></span></span><span style="display:flex;"><span><span style="color:#bbb">    </span><span style="color:#60a0b0;font-style:italic">// access the reference
 </span></span></span><span style="display:flex;"><span><span style="color:#60a0b0;font-style:italic"></span><span style="color:#bbb">    </span>println!(<span style="color:#4070a0">&#34;x: {}&#34;</span>,<span style="color:#bbb"> </span><span style="color:#666">*</span>x);<span style="color:#bbb">
 </span></span></span><span style="display:flex;"><span><span style="color:#bbb"></span>}<span style="color:#bbb">
-</span></span></span></code></pre></div><p>It&rsquo;s clearly a compiler bug and I hope it gets fixed (the issue has been open
-for 4 years). I think it&rsquo;s fun to try to understand where the compiler is
-allowing something that it shouldn&rsquo;t. This should work on all versions of Rust
-(at least up until 1.69 &ndash; the current version of Rust as of the time of
-writing).</p>
+</span></span></span></code></pre></div><p>Pretty funny! It&rsquo;s a compiler bug and will hopefully be fixed at some point
+(the issue has been open for 4 years though). I think it&rsquo;s interesting to try
+to understand where the compiler is allowing something that it shouldn&rsquo;t. This
+should work on all versions of Rust (at least up until 1.69 &ndash; the current
+version of Rust at the time of writing).</p>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p><code>transmute</code> allows you to reinterpret a value of one type as a value of
+any other type without any checking (very unsafe).&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
 
 </main>
 
