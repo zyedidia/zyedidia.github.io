@@ -48,8 +48,10 @@ as a 32-bit integer, so one way to visualize the instruction set is by plotting
 the instructions along a space-filling curve, such as a Hilbert curve<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup>, and
 coloring them according to their instruction class (i.e., <code>general</code>, <code>advsimd</code>,
 <code>float</code>, <code>sve</code>, etc&hellip;).</p>
-<p>Here is the <a href="https://zyedidia.github.io/arm64/index.html">interactive viewer</a>:</p>
-<iframe src="https://zyedidia.github.io/arm64/index.html" style="width: 100%; height: 600px;" frameBorder="0"></iframe>
+<p><a href="https://zyedidia.github.io/arm64/index.html">Click here for the interactive version</a>.</p>
+<img src="../img/6/arm64_monokai.png" style="width: 100%" />
+<img src="../img/6/legend_monokai.png" style="width: 100%" />
+<!-- <iframe src="https://zyedidia.github.io/arm64/index.html" style="width: 70%; height: 600px;"></iframe> -->
 <h1 id="generating-the-visualization">Generating the visualization</h1>
 <p>To generate this visualization, I started with Arm&rsquo;s Machine Readable
 Architecture (MRA) Specification. The most recent version can be downloaded
@@ -85,9 +87,11 @@ their &ldquo;instruction class&rdquo;: one of <code>general</code>, <code>system
 many instructions to plot each instruction as an individual pixel, so each
 pixel in the image corresponds to 256 instructions, and the pixel&rsquo;s alpha value
 corresponds to how filled the pixel is with instructions.</p>
-<p>With a nice theme, we get pretty images like this:</p>
-<img src="../img/6/arm64_monokai.png" style="width: 100%" />
-<img src="../img/6/legend_monokai.png" style="width: 100%" />
+<p>With a nice theme, we get pretty images like these:</p>
+<div align="center">
+<img src="../img/6/arm64_monokai.png" style="width: 48%" />
+<img src="../img/6/arm64_solarized.png" style="width: 48%" />
+</div>
 <p>Some of the more interesting patterns are caused by the SVE2 and SME2 (<code>mortlach2</code>)
 instructions.</p>
 <div align="center">
@@ -96,19 +100,18 @@ instructions.</p>
 </div>
 <h2 id="interactive-website">Interactive website</h2>
 <p>The interactive version is available at
-<a href="https://zyedidia.github.io/arm64/index.html">https://zyedidia.github.io/arm64/index.html</a> (and is included at the top of this
-blog post). It lets you inspect the different instructions and choose the
-overlay that you&rsquo;d like. The main issue is showing the instruction disassembly
-as a string. While the Arm specification does have sections for &ldquo;assembler
-templates&rdquo; describing how an instruction should be displayed as a string, the
-information seems to be intended for a human to read. It&rsquo;s not immediately easy
-to consume the format they give and produce a function that simply maps from
-bits in the instruction to a string representation. I think it is possible, but
-that will be a project for another time. For now, the web version uses a
-version of Capstone compiled to WebAssembly to display instruction disassembly.
-Since it&rsquo;s a somewhat old version of Capstone, it doesn&rsquo;t understand all the
-instructions so in those cases the site just falls back to displaying the name
-of the instruction.</p>
+<a href="https://zyedidia.github.io/arm64/index.html">https://zyedidia.github.io/arm64/index.html</a>. It lets you inspect the different
+instructions and choose the overlay that you&rsquo;d like. The main issue is showing
+the instruction disassembly as a string. While the Arm specification does have
+sections for &ldquo;assembler templates&rdquo; describing how an instruction should be
+displayed as a string, the information seems to be intended for a human to
+read. It&rsquo;s not immediately easy to consume the format they give and produce a
+function that simply maps from bits in the instruction to a string
+representation. I think it is possible, but that will be a project for another
+time. For now, the web version uses a version of Capstone compiled to
+WebAssembly to display instruction disassembly. Since it&rsquo;s a somewhat old
+version of Capstone, it doesn&rsquo;t understand all the instructions so in those
+cases the site just falls back to displaying the name of the instruction.</p>
 <p>The interactive version&rsquo;s fallback also does not take into account the
 Capstone-based post-processing pass, so it may think some locations have
 instructions when they in fact do not.</p>
@@ -172,7 +175,7 @@ modify reserved registers. The full red regions are generally the direct
 branches, which are always guaranteed to be legal thanks to static branch range
 being limited to less than the size of a sandbox. SIMD and floating point
 instructions are also usually red because they don&rsquo;t access memory or modify
-reserved regiters. Not only does it generate a cool picture, but the
+reserved registers. Not only does it generate a cool picture, but the
 visualization can help sanity-check the correctness of the verifier.</p>
 <h1 id="conclusion">Conclusion</h1>
 <p>Thanks for reading! Generating these images has been a fun distraction for me.
