@@ -18,20 +18,64 @@
             </div>
             <div class="col-4">
                 <h2>Info</h2>
-                <pre id="hoverbox"></pre>
-                <pre id="codebox" style="height: 30pc; overflow-y: scroll">click pixel for more info</pre>
+                <select name="images" id="images" onchange="select()">
+                    <option value="class">instruction classes</option>
+                    <option value="lfi">LFI verifier</option>
+                </select>
+                <br>
+                <br>
+                <pre id="hoverbox">hover for info</pre>
+                <pre id="codebox" style="height: 30pc; overflow-y: scroll">click pixel for info</pre>
             </div>
         </div>
     </div>
     <script>
+        function select() {
+            var c = document.getElementById("canvas");
+            var sel = document.getElementById("images");
+            var ctx = c.getContext("2d");
+            var drawing = new Image();
+            if (sel.value == "class") {
+                drawing.src = "arm64.png";
+            } else if (sel.value == "lfi") {
+                drawing.src = "lfi.png";
+            }
+            drawing.onload = function() {
+                ctx.imageSmoothingEnabled = false;
+                ctx.drawImage(drawing, 0, 0, 4096, 4096);
+            };
+        }
+
+    </script>
+    <script type='module'>
+    import {
+      Const, Capstone, loadCapstone,
+    } from './js/node_modules/capstone-wasm/dist/index.mjs'
+
+    await loadCapstone()
+
+    function toBytes(x) {
+        return [
+            x & 0xff,
+            (x >> 8) & 0xff,
+            (x >> 16) & 0xff,
+            (x >> 24) & 0xff
+        ]
+    }
+
+    const capstone = new Capstone(Const.CS_ARCH_ARM64, 0)
+
+    function decode(encoded) {
+        const code = toBytes(encoded);
+        const insns = capstone.disasm(code, {
+            address: 0,
+        })
+        return insns[0].mnemonic + " " + insns[0].opStr;
+    }
+
+    select();
     var c = document.getElementById("canvas");
     var ctx = c.getContext("2d");
-    drawing = new Image();
-    drawing.src = "arm64.png";
-    drawing.onload = function() {
-        ctx.imageSmoothingEnabled=false;
-        ctx.drawImage(drawing, 0, 0, 4096, 4096);
-    };
     c.onclick = ev => {
         const coord = getMousePos(c, ev);
         mouseClick(coord.x, coord.y);
@@ -62,18 +106,41 @@
         return s;
     }
 
-    function mouseMove(x, y) {
-        let s = xyToHilbert(x, y, 12)
-        let insn = s * 256;
-        var out = ""
+    function instrInfoFull(insn) {
         for (var i = 0; i < funcs.length; i++) {
             if (funcs[i](insn)) {
-                out += "0x" + insn.toString(16) + ": " + arm64_json[i].Name + " (" + arm64_json[i].InstrClass + ")";
-                break;
+                var info = arm64_json[i];
+                return info.Name + " (" + info.InstrClass + ")";
+            }
+        }
+        return "";
+    }
+
+    function mouseMove(x, y) {
+        let s = xyToHilbert(x, y, 12)
+        let insn_start = s * 256;
+        var out = ""
+loop:
+        for (var insn = insn_start; insn < insn_start + 256; insn++) {
+            try {
+                for (var i = 0; i < funcs.length; i++) {
+                    if (funcs[i](insn)) {
+                        out = "0x" + insn.toString(16) + ": " + decode(insn);
+                        var info = arm64_json[i];
+                        out += " (" + info.InstrClass + ")";
+                        break loop;
+                    }
+                }
+            } catch (error) {
+                var i = instrInfoFull(insn);
+                if (i != "") {
+                    out = "0x" + insn.toString(16) + ": " + i;
+                    break;
+                }
             }
         }
         if (out == "") {
-            out = "\n";
+            out = "0x" + insn_start.toString(16) + ": none\n";
         }
         document.getElementById("hoverbox").innerHTML = out;
     }
@@ -84,23 +151,42 @@
         var out = "";
         var n = 0;
         for (var insn = insn_start; insn < insn_start + 256; insn++) {
-            for (var i = 0; i < funcs.length; i++) {
-                if (funcs[i](insn)) {
-                    var info = arm64_json[i];
-                    out += "0x" + insn.toString(16) + ": " + info.Name + " (" + info.InstrClass + ")";
-                    if (info.Variants != "") {
-                        out += ", " + info.Variants;
+            try {
+                for (var i = 0; i < funcs.length; i++) {
+                    if (funcs[i](insn)) {
+                        out += "0x" + insn.toString(16) + ": " + decode(insn);
+                        var info = arm64_json[i];
+                        out += " (" + info.InstrClass + ")";
+                        if (info.Variants != "") {
+                            out += ", " + info.Variants;
+                        }
+                        if (info.Features != "") {
+                            out += ", " + info.Features;
+                        }
+                        out += "\n";
+                        n++;
+                        break;
                     }
-                    if (info.Features != "") {
-                        out += ", " + info.Features;
+                }
+            } catch (error) {
+                for (var i = 0; i < funcs.length; i++) {
+                    if (funcs[i](insn)) {
+                        var info = arm64_json[i];
+                        out += "0x" + insn.toString(16) + ": " + info.Name + " (" + info.InstrClass + ")";
+                        if (info.Variants != "") {
+                            out += ", " + info.Variants;
+                        }
+                        if (info.Features != "") {
+                            out += ", " + info.Features;
+                        }
+                        out += "\n";
+                        n++;
+                        break;
                     }
-                    out += "\n";
-                    n++;
-                    break;
                 }
             }
         }
-        out = "instructions: " + n + "\n" + out;
+        out = n + " instructions at 0x" + insn_start.toString(16) + "\n" + out;
         document.getElementById("codebox").innerHTML = out;
     }
 
