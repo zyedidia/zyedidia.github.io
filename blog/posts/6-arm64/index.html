@@ -118,7 +118,7 @@ instructions when they in fact do not.</p>
 <p>The tools are available at <a href="https://github.com/zyedidia/armvis">https://github.com/zyedidia/armvis</a>.</p>
 <h1 id="visualizing-the-lfi-verifier">Visualizing the LFI verifier</h1>
 <p>One of my projects that uses ARM64 is called Lightweight Fault Isolation (LFI), and
-it&rsquo;s is an efficient software sandboxing approach for ARM64. If you&rsquo;d like to
+is an efficient software sandboxing approach for ARM64. If you&rsquo;d like to
 know the details, you can read the
 <a href="https://zyedidia.github.io/papers/lfi_asplos24.pdf">paper</a>, which I&rsquo;ll be
 presenting this April at ASPLOS. The code is also available at
@@ -140,10 +140,12 @@ current LFI verifier does not work this way &ndash; it has some lookahead to all
 for more optimizations). Some of my current research is about the consequences
 of designing a verifier this way (with some exciting in-progress results). In
 any case, this also means it&rsquo;s possible to visualize the verifier by displaying
-all the legal instructions with a Hilbert curve heatmap. Again, every pixel is
-256 instructions, but this time it&rsquo;s a heatmap, meaning that blue indicates
-that the pixel does not have many legal instructions, and red indicates that
-the pixel is full of legal instructions.</p>
+all the legal instructions with a Hilbert curve heatmap (see
+<a href="https://github.com/measurement-factory/ipv4-heatmap">here</a> for the IPv4
+version that this kind of visualization is based on). Again, every pixel is 256
+instructions, but this time it&rsquo;s a heatmap, meaning that blue indicates that
+the pixel does not have many legal instructions, and red indicates that the
+pixel is full of legal instructions.</p>
 <p>On top of the verifier&rsquo;s restrictions due to security, the initial version of
 LFI also only supports ARMv8.0, so the picture shown below looks a lot sparser
 than the full ARMv8.9 instruction set from earlier. In the future I&rsquo;d like to
