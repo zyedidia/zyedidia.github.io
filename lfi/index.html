@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+textarea {
+  resize: none;
+}
+pre {
+    display: inline;
+}
+</style>
+<script src="lfileg.js"></script>
+<script>
+    var lfi_rewrite = null;
+    var lfi_flags = null;
+    Module.onRuntimeInitialized = _ => {
+        lfi_rewrite = Module.cwrap('lfi_rewrite', 'string', ['string', 'string', 'string', 'string', 'string', 'string']);
+        lfi_flags = Module.cwrap('lfi_flags', 'string', ['string', 'string', 'string', 'string', 'string']);
+    };
+
+    function compile() {
+        if (lfi_rewrite == null)
+            return;
+        var arch = document.getElementById('arch').value;
+        var input = document.getElementById('input_' + arch).value;
+        var sandbox = document.getElementById('sandbox').value;
+        var bundle = document.getElementById('bundle').value;
+        var size = document.getElementById('size').value;
+        var segue = document.getElementById('segue').value;
+        document.getElementById('output').value = lfi_rewrite(input + "\n", arch, sandbox, bundle, size, segue);
+        select();
+    }
+
+    function selectArch() {
+        var arch = document.getElementById('arch').value;
+        console.log("arch:", arch);
+        var bundle = document.getElementById('bundle');
+        bundle.hidden = arch == "arm64" || arch == "riscv64";
+        var size = document.getElementById('size');
+        size.hidden = arch == "arm64" || arch == "riscv64";
+        var segue = document.getElementById('segue');
+        segue.hidden = arch == "arm64" || arch == "riscv64" || size.value == "variable";
+
+        document.getElementById('input_riscv64').hidden = true;
+        document.getElementById('input_arm64').hidden = true;
+        document.getElementById('input_amd64').hidden = true;
+        document.getElementById('input_' + arch).hidden = false;
+        select();
+    }
+
+    function selectSize() {
+        var size = document.getElementById('size').value;
+        var segue = document.getElementById('segue');
+        segue.hidden = size == "variable";
+        select();
+    }
+
+    function select() {
+        if (lfi_flags == null)
+            return;
+        var arch = document.getElementById('arch').value;
+        var input = document.getElementById('input_' + arch).value;
+        var sandbox = document.getElementById('sandbox').value;
+        var bundle = document.getElementById('bundle').value;
+        var size = document.getElementById('size').value;
+        var segue = document.getElementById('segue').value;
+        document.getElementById('flags').innerHTML = lfi_flags(arch, sandbox, bundle, size, segue);
+    }
+</script>
+</head>
+<body>
+
+<button type="button" onclick="compile();">Compile</button>
+
+<select id="arch" onchange="selectArch();">
+    <option value="arm64">arm64</option>
+    <option value="amd64">x86-64</option>
+    <option value="riscv64">riscv64</option>
+</select>
+
+<select id="sandbox" onchange="select();">
+    <option value="full">full</option>
+    <option value="stores">stores</option>
+    <option value="bundle-jumps">bundles</option>
+    <option value="none">none</option>
+</select>
+
+<select id="bundle" onchange="select();">
+    <option value="bundle16">bundle-16</option>
+    <option value="bundle32">bundle-32</option>
+</select>
+
+<select id="size" onchange="selectSize();">
+    <option value="4gb">4GiB</option>
+    <option value="variable">variable</option>
+</select>
+
+<select id="segue" onchange="select();">
+    <option value="segue">segue</option>
+    <option value="nosegue">no segue</option>
+</select>
+
+<br>
+
+<textarea id="input_arm64" rows="40" cols="50" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+1:
+stp xzr, xzr, [x2, #16]
+2:
+ldr x0, [x1]
+3:
+ldp x29, x30, [sp], #16
+4:
+ret
+5:
+add sp, sp, #16
+6:
+br x0
+</textarea>
+
+<textarea id="input_amd64" rows="40" cols="50" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+1:
+mov (%rax), %rsi
+2:
+mov %rdi, 8(%r11, %r12)
+3:
+ret
+4:
+rep stosq
+5:
+addq $16, %rsp
+6:
+jmpq *(%rax)
+7:
+mov %dh, (%rax)
+</textarea>
+
+<textarea id="input_riscv64" rows="40" cols="50" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+lw t0, 8(a0)
+</textarea>
+
+<textarea readonly rows="40" cols="50" id="output">
+</textarea>
+
+<br>
+
+<pre>Compiler flags: </pre><pre id="flags"></pre>
+
+<script>
+    selectArch();
+</script>
+
+</body>
+</html>
+
+
+
