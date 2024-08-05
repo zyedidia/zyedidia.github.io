@@ -16,18 +16,33 @@ pre {
     Module.onRuntimeInitialized = _ => {
         lfi_rewrite = Module.cwrap('lfi_rewrite', 'string', ['string', 'string', 'string', 'string', 'string', 'string']);
         lfi_flags = Module.cwrap('lfi_flags', 'string', ['string', 'string', 'string', 'string', 'string']);
+        compile();
     };
 
-    function compile() {
-        if (lfi_rewrite == null)
-            return;
+    function createConfig() {
         var arch = document.getElementById('arch').value;
-        var input = document.getElementById('input_' + arch).value;
-        var sandbox = document.getElementById('sandbox').value;
-        var bundle = document.getElementById('bundle').value;
-        var size = document.getElementById('size').value;
-        var segue = document.getElementById('segue').value;
-        document.getElementById('output').value = lfi_rewrite(input + "\n", arch, sandbox, bundle, size, segue);
+        var config = {
+            "arch": arch,
+            "sandbox": document.getElementById('sandbox').value,
+            "bundle": document.getElementById('bundle').value,
+            "size": document.getElementById('size').value,
+            "segue": document.getElementById('segue').value,
+            "input": document.getElementById('input_' + arch).value,
+        }
+        return btoa(JSON.stringify(config))
+    }
+
+    function share() {
+        var config = createConfig();
+        var link = "https://www.scs.stanford.edu/~zyedidia/lfi/index.html?config=" + createConfig();
+        document.getElementById('sharelink').href = link;
+        var size = Math.min(config.length, 20);
+        document.getElementById('sharelink').innerHTML = "https://www.scs.stanford.edu/~zyedidia/lfi/index.html?config=" + config.substring(0, size) + "...";
+        navigator.clipboard.writeText(link);
+        document.getElementById('copied').innerHTML = " copied!";
+    }
+
+    function compile() {
         select();
     }
 
@@ -65,6 +80,15 @@ pre {
         var size = document.getElementById('size').value;
         var segue = document.getElementById('segue').value;
         document.getElementById('flags').innerHTML = lfi_flags(arch, sandbox, bundle, size, segue);
+        if (lfi_rewrite == null)
+            return;
+        var arch = document.getElementById('arch').value;
+        var input = document.getElementById('input_' + arch).value;
+        var sandbox = document.getElementById('sandbox').value;
+        var bundle = document.getElementById('bundle').value;
+        var size = document.getElementById('size').value;
+        var segue = document.getElementById('segue').value;
+        document.getElementById('output').value = lfi_rewrite(input + "\n", arch, sandbox, bundle, size, segue);
     }
 </script>
 </head>
@@ -135,7 +159,16 @@ mov %dh, (%rax)
 </textarea>
 
 <textarea id="input_riscv64" rows="40" cols="50" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+1:
 lw t0, 8(a0)
+2:
+jalr t0
+3:
+ret
+4:
+sd t0, (a1)
+5:
+add sp, sp, 8
 </textarea>
 
 <textarea readonly rows="40" cols="50" id="output">
@@ -145,7 +178,39 @@ lw t0, 8(a0)
 
 <pre>Compiler flags: </pre><pre id="flags"></pre>
 
+<br>
+<br>
+
+<button type="button" onclick="share();">Share</button>
+
+<a id="sharelink" href=""></a><p style="display: inline" id="copied"></p>
+
+<br>
+<br>
+
+Source code: <a href="https://github.com/zyedidia/lfi">github.com/zyedidia/lfi</a>
+
 <script>
+    var params = new URLSearchParams(location.search);
+    var config = null;
+    if (params.get('config') != null) {
+        try {
+            config = JSON.parse(atob(params.get('config')))
+        } catch (e) {
+            config = null;
+        }
+    }
+    console.log(config);
+
+    if (config != null) {
+        document.getElementById('arch').value = config.arch;
+        document.getElementById('sandbox').value = config.sandbox;
+        document.getElementById('bundle').value = config.bundle;
+        document.getElementById('size').value = config.size;
+        document.getElementById('segue').value = config.segue;
+        document.getElementById('input_' + config.arch).value = config.input;
+    }
+
     selectArch();
 </script>
 
